@@ -30,24 +30,6 @@ struct ExpenseEntryView: View {
                 self.selectedCategoryID = categories.first?.id
             }
         }
-        .confirmationDialog(
-            "Delete expense?",
-            isPresented: Binding(
-                get: { expensePendingDeletion != nil },
-                set: { if $0 == false { expensePendingDeletion = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let expense = expensePendingDeletion {
-                Button("Delete expense", role: .destructive) {
-                    Task { await store.deleteExpense(id: expense.id) }
-                }
-            }
-        } message: {
-            if let expense = expensePendingDeletion {
-                Text("This removes \(AppFormatters.currency(expense.amount, currencyCode: snapshot.settings.currencyCode)) from \(AppFormatters.shortDay(expense.day)).")
-            }
-        }
     }
 
     private var form: some View {
@@ -97,10 +79,23 @@ struct ExpenseEntryView: View {
                         expense: expense,
                         categoryName: store.categoryName(for: expense.categoryID),
                         categoryColorHex: store.categoryColor(for: expense.categoryID),
-                        currencyCode: snapshot.settings.currencyCode
-                    ) {
-                        expensePendingDeletion = expense
-                    }
+                        currencyCode: snapshot.settings.currencyCode,
+                        isPendingDeletion: expensePendingDeletion?.id == expense.id,
+                        requestDelete: {
+                            expensePendingDeletion = expense
+                        },
+                        confirmDelete: {
+                            Task {
+                                await store.deleteExpense(id: expense.id)
+                                if store.errorMessage == nil {
+                                    expensePendingDeletion = nil
+                                }
+                            }
+                        },
+                        cancelDelete: {
+                            expensePendingDeletion = nil
+                        }
+                    )
                 }
             }
         }
@@ -131,9 +126,23 @@ private struct ExpenseRow: View {
     let categoryName: String
     let categoryColorHex: String
     let currencyCode: String
+    let isPendingDeletion: Bool
     let requestDelete: () -> Void
+    let confirmDelete: () -> Void
+    let cancelDelete: () -> Void
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            row
+
+            if isPendingDeletion {
+                deleteConfirmation
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var row: some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(Color(hex: categoryColorHex))
@@ -152,11 +161,54 @@ private struct ExpenseRow: View {
             Text(AppFormatters.currency(expense.amount, currencyCode: currencyCode))
                 .font(.callout.weight(.medium))
 
-            Button(action: requestDelete) {
-                Image(systemName: "trash")
+            if isPendingDeletion == false {
+                Button(action: requestDelete) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .help("Delete expense")
             }
-            .buttonStyle(.borderless)
-            .help("Delete expense")
         }
+    }
+
+    private var deleteConfirmation: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Delete expense?")
+                .font(.caption.weight(.medium))
+
+            Text("This removes \(AppFormatters.currency(expense.amount, currencyCode: currencyCode)) from \(AppFormatters.shortDay(expense.day)).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: cancelDelete)
+                ExpenseDeleteButton(title: "Delete", action: confirmDelete)
+            }
+        }
+        .padding(10)
+        .background(Color.red.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.leading, 18)
+    }
+}
+
+private struct ExpenseDeleteButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(minWidth: 72)
+                .padding(.vertical, 7)
+                .contentShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .background(Color.red.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .help(title)
     }
 }
