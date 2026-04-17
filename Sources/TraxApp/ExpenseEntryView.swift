@@ -32,14 +32,21 @@ struct ExpenseEntryView: View {
         }
         .confirmationDialog(
             "Delete expense?",
-            item: $expensePendingDeletion,
+            isPresented: Binding(
+                get: { expensePendingDeletion != nil },
+                set: { if $0 == false { expensePendingDeletion = nil } }
+            ),
             titleVisibility: .visible
-        ) { expense in
-            Button("Delete expense", role: .destructive) {
-                Task { await store.deleteExpense(id: expense.id) }
+        ) {
+            if let expense = expensePendingDeletion {
+                Button("Delete expense", role: .destructive) {
+                    Task { await store.deleteExpense(id: expense.id) }
+                }
             }
-        } message: { expense in
-            Text("This removes \(AppFormatters.currency(expense.amount)) from \(AppFormatters.shortDay(expense.day)).")
+        } message: {
+            if let expense = expensePendingDeletion {
+                Text("This removes \(AppFormatters.currency(expense.amount)) from \(AppFormatters.shortDay(expense.day)).")
+            }
         }
     }
 

@@ -10,84 +10,106 @@ struct CategoriesView: View {
     @State private var selectedColor = ColorPreset.presets.first!
     @State private var editingCategoryID: ExpenseCategory.ID?
     @State private var editedName = ""
+    @State private var categoryPendingRemoval: ExpenseCategory?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            addCategory
+            newCategorySection
             categoryList(title: "Active", categories: snapshot.activeCategories)
 
             if snapshot.archivedCategories.isEmpty == false {
                 categoryList(title: "Archived", categories: snapshot.archivedCategories)
             }
 
-            Spacer(minLength: 0)
+        }
+        .confirmationDialog(
+            "Remove category?",
+            isPresented: Binding(
+                get: { categoryPendingRemoval != nil },
+                set: { if $0 == false { categoryPendingRemoval = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let category = categoryPendingRemoval {
+                Button("Remove category", role: .destructive) {
+                    Task { await store.removeCategory(id: category.id) }
+                }
+            }
+        } message: {
+            if let category = categoryPendingRemoval {
+                Text("Remove \(category.name)? Unused categories are deleted. Categories with expenses are archived to keep history intact.")
+            }
         }
     }
 
-    private var addCategory: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("New category")
-                .font(.headline)
+    private var newCategorySection: some View {
+        PanelSection("New category", detail: "Use categories for decisions you want to notice.") {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("Name", text: $newName)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(submitCategory)
 
-            TextField("Name", text: $newName)
-                .textFieldStyle(.roundedBorder)
+                HStack {
+                    ColorPresetPicker(selection: $selectedColor)
 
-            HStack {
-                ForEach(ColorPreset.presets) { preset in
-                    Button {
-                        selectedColor = preset
-                    } label: {
-                        Circle()
-                            .fill(Color(hex: preset.hex))
-                            .frame(width: 18, height: 18)
-                            .overlay {
-                                if selectedColor.id == preset.id {
-                                    Circle()
-                                        .stroke(.primary, lineWidth: 2)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .help(preset.name)
-                }
+                    Spacer()
 
-                Spacer()
-
-                Button("Add") {
-                    Task {
-                        await store.addCategory(name: newName, colorHex: selectedColor.hex)
-                        if store.errorMessage == nil {
-                            newName = ""
-                        }
-                    }
+                    Button("Add", action: submitCategory)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(canAddCategory == false)
                 }
             }
         }
     }
 
     private func categoryList(title: String, categories: [ExpenseCategory]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-
-            ForEach(categories) { category in
-                CategoryRow(
-                    category: category,
-                    isEditing: editingCategoryID == category.id,
-                    editedName: binding(for: category)
-                ) {
-                    beginEditing(category)
-                } save: {
-                    Task {
-                        await store.renameCategory(id: category.id, name: editedName)
-                        if store.errorMessage == nil {
-                            editingCategoryID = nil
-                            editedName = ""
-                        }
+        PanelSection(title) {
+            if categories.isEmpty {
+                EmptyStateView(
+                    title: "No \(title.lowercased()) categories.",
+                    message: "Categories you add will appear here."
+                )
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(categories) { category in
+                        CategoryRow(
+                            category: category,
+                            isEditing: editingCategoryID == category.id,
+                            editedName: binding(for: category),
+                            selectedPreset: ColorPreset.matching(category.colorHex),
+                            edit: {
+                                beginEditing(category)
+                            },
+                            save: {
+                                Task {
+                                    await store.renameCategory(id: category.id, name: editedName)
+                                    if store.errorMessage == nil {
+                                        editingCategoryID = nil
+                                        editedName = ""
+                                    }
+                                }
+                            },
+                            cancel: {
+                                editingCategoryID = nil
+                                editedName = ""
+                            },
+                            updateColor: { preset in
+                                Task { await store.updateCategoryColor(id: category.id, colorHex: preset.hex) }
+                            },
+                            archiveOrRestore: {
+                                Task {
+                                    if category.isArchived {
+                                        await store.restoreCategory(id: category.id)
+                                    } else {
+                                        await store.archiveCategory(id: category.id)
+                                    }
+                                }
+                            },
+                            requestRemove: {
+                                categoryPendingRemoval = category
+                            }
+                        )
                     }
-                } cancel: {
-                    editingCategoryID = nil
-                    editedName = ""
                 }
             }
         }
@@ -111,16 +133,32 @@ struct CategoriesView: View {
         editingCategoryID = category.id
         editedName = category.name
     }
+
+    private var canAddCategory: Bool {
+        newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private func submitCategory() {
+        Task {
+            await store.addCategory(name: newName, colorHex: selectedColor.hex)
+            if store.errorMessage == nil {
+                newName = ""
+            }
+        }
+    }
 }
 
 private struct CategoryRow: View {
-    @EnvironmentObject private var store: ExpenseStore
     let category: ExpenseCategory
     let isEditing: Bool
     @Binding var editedName: String
+    let selectedPreset: ColorPreset
     let edit: () -> Void
     let save: () -> Void
     let cancel: () -> Void
+    let updateColor: (ColorPreset) -> Void
+    let archiveOrRestore: () -> Void
+    let requestRemove: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -131,6 +169,7 @@ private struct CategoryRow: View {
             if isEditing {
                 TextField("Name", text: $editedName)
                     .textFieldStyle(.roundedBorder)
+                    .onSubmit(save)
             } else {
                 Text(category.name)
                     .foregroundStyle(category.isArchived ? .secondary : .primary)
@@ -140,29 +179,64 @@ private struct CategoryRow: View {
 
             if isEditing {
                 Button("Save", action: save)
+                    .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("Cancel", action: cancel)
             } else {
-                Button("Rename", action: edit)
-
-                if category.isArchived {
-                    Button("Restore") {
-                        Task { await store.restoreCategory(id: category.id) }
+                Menu {
+                    ForEach(ColorPreset.presets) { preset in
+                        Button {
+                            updateColor(preset)
+                        } label: {
+                            Label(preset.name, systemImage: selectedPreset.id == preset.id ? "checkmark.circle.fill" : "circle.fill")
+                        }
                     }
-                } else {
-                    Button("Archive") {
-                        Task { await store.archiveCategory(id: category.id) }
-                    }
-                }
-
-                Button {
-                    Task { await store.removeCategory(id: category.id) }
                 } label: {
-                    Image(systemName: "trash")
+                    Image(systemName: "paintpalette")
                 }
-                .help("Delete category")
+                .menuStyle(.borderlessButton)
+                .help("Change color")
+
+                Menu {
+                    Button("Rename", action: edit)
+                    Button(category.isArchived ? "Restore" : "Archive", action: archiveOrRestore)
+                    Divider()
+                    Button("Remove", role: .destructive, action: requestRemove)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .help("Category actions")
             }
         }
         .font(.callout)
+        .padding(.vertical, 3)
+    }
+}
+
+private struct ColorPresetPicker: View {
+    @Binding var selection: ColorPreset
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(ColorPreset.presets) { preset in
+                Button {
+                    selection = preset
+                } label: {
+                    Circle()
+                        .fill(Color(hex: preset.hex))
+                        .frame(width: 18, height: 18)
+                        .overlay {
+                            if selection.id == preset.id {
+                                Circle()
+                                    .stroke(.primary, lineWidth: 2)
+                            }
+                        }
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help(preset.name)
+            }
+        }
     }
 }
 
@@ -179,4 +253,8 @@ private struct ColorPreset: Identifiable, Equatable {
         ColorPreset(id: "red", name: "Red", hex: "#FF453A"),
         ColorPreset(id: "gray", name: "Gray", hex: "#8E8E93")
     ]
+
+    static func matching(_ hex: String) -> ColorPreset {
+        presets.first { $0.hex.caseInsensitiveCompare(hex) == .orderedSame } ?? presets[5]
+    }
 }

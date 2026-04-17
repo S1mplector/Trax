@@ -82,6 +82,12 @@ final class ExpenseStore: ObservableObject {
         }
     }
 
+    func updateCategoryColor(id: ExpenseCategory.ID, colorHex: String) async {
+        await perform {
+            try await tracker.updateCategoryColor(id: id, colorHex: colorHex)
+        }
+    }
+
     func archiveCategory(id: ExpenseCategory.ID) async {
         await perform {
             try await tracker.archiveCategory(id: id)

@@ -165,7 +165,8 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         let rawHex = colorHex
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        let isHex = rawHex.unicodeScalars.allSatisfy { CharacterSet.hexadecimalDigits.contains($0) }
+        let hexDigits = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
+        let isHex = rawHex.unicodeScalars.allSatisfy { hexDigits.contains($0) }
 
         guard rawHex.count == 6, isHex else {
             throw ExpenseBookError.invalidCategoryColor
