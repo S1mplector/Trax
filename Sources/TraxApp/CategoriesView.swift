@@ -161,6 +161,27 @@ private struct CategoryRow: View {
     let requestRemove: () -> Void
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            row
+
+            if isEditing {
+                HStack {
+                    ColorPresetButtons(selectedPreset: selectedPreset, select: updateColor)
+
+                    Spacer()
+
+                    Button("Save", action: save)
+                        .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Cancel", action: cancel)
+                }
+                .padding(.leading, 20)
+            }
+        }
+        .font(.callout)
+        .padding(.vertical, 6)
+    }
+
+    private var row: some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(Color(hex: category.colorHex))
@@ -173,43 +194,39 @@ private struct CategoryRow: View {
             } else {
                 Text(category.name)
                     .foregroundStyle(category.isArchived ? .secondary : .primary)
+                    .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 12)
 
-            if isEditing {
-                Button("Save", action: save)
-                    .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Button("Cancel", action: cancel)
-            } else {
-                Menu {
-                    ForEach(ColorPreset.presets) { preset in
-                        Button {
-                            updateColor(preset)
-                        } label: {
-                            Label(preset.name, systemImage: selectedPreset.id == preset.id ? "checkmark.circle.fill" : "circle.fill")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "paintpalette")
-                }
-                .menuStyle(.borderlessButton)
-                .help("Change color")
-
-                Menu {
-                    Button("Rename", action: edit)
-                    Button(category.isArchived ? "Restore" : "Archive", action: archiveOrRestore)
-                    Divider()
-                    Button("Remove", role: .destructive, action: requestRemove)
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .menuStyle(.borderlessButton)
-                .help("Category actions")
+            if isEditing == false {
+                CategoryIconButton(systemName: "pencil", help: "Rename", action: edit)
+                CategoryIconButton(
+                    systemName: category.isArchived ? "arrow.uturn.backward" : "archivebox",
+                    help: category.isArchived ? "Restore" : "Archive",
+                    action: archiveOrRestore
+                )
+                CategoryIconButton(systemName: "trash", help: "Remove", role: .destructive, action: requestRemove)
             }
         }
-        .font(.callout)
-        .padding(.vertical, 3)
+    }
+}
+
+private struct CategoryIconButton: View {
+    let systemName: String
+    let help: String
+    var role: ButtonRole?
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: role, action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 24, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .help(help)
     }
 }
 
@@ -217,16 +234,27 @@ private struct ColorPresetPicker: View {
     @Binding var selection: ColorPreset
 
     var body: some View {
+        ColorPresetButtons(selectedPreset: selection) { preset in
+            selection = preset
+        }
+    }
+}
+
+private struct ColorPresetButtons: View {
+    let selectedPreset: ColorPreset
+    let select: (ColorPreset) -> Void
+
+    var body: some View {
         HStack(spacing: 8) {
             ForEach(ColorPreset.presets) { preset in
                 Button {
-                    selection = preset
+                    select(preset)
                 } label: {
                     Circle()
                         .fill(Color(hex: preset.hex))
                         .frame(width: 18, height: 18)
                         .overlay {
-                            if selection.id == preset.id {
+                            if selectedPreset.id == preset.id {
                                 Circle()
                                     .stroke(.primary, lineWidth: 2)
                             }
