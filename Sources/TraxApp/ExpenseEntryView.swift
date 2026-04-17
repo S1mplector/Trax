@@ -180,13 +180,14 @@ private struct ExpenseRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack {
+            HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel", action: cancelDelete)
+                    .controlSize(.small)
                 ExpenseDeleteButton(title: "Delete", action: confirmDelete)
             }
         }
-        .padding(10)
+        .padding(8)
         .background(Color.red.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.leading, 18)
@@ -200,10 +201,11 @@ private struct ExpenseDeleteButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.callout.weight(.semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
-                .frame(minWidth: 72)
-                .padding(.vertical, 7)
+                .frame(minWidth: 54)
+                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
                 .contentShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
