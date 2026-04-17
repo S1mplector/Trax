@@ -4,12 +4,19 @@ import TraxApplication
 struct TodayView: View {
     @EnvironmentObject private var store: ExpenseStore
     let snapshot: ExpenseBookSnapshot
+    @State private var noSpendNote = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             todayStatus
             monthSummary
             recentDays
+        }
+        .onAppear {
+            noSpendNote = snapshot.today.note
+        }
+        .onChange(of: snapshot.today.note) { _, note in
+            noSpendNote = note
         }
     }
 
@@ -26,9 +33,21 @@ struct TodayView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
+            if snapshot.today.status != .spent {
+                TextField("Optional note", text: $noSpendNote)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        Task { await store.markTodayNoSpend(note: noSpendNote) }
+                    }
+            } else if snapshot.today.note.isEmpty == false {
+                Text(snapshot.today.note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             HStack {
-                Button("No spend today") {
-                    Task { await store.markTodayNoSpend() }
+                Button(snapshot.today.status == .noSpend ? "Update no-spend" : "No spend today") {
+                    Task { await store.markTodayNoSpend(note: noSpendNote) }
                 }
                 .disabled(snapshot.today.status == .spent)
 
@@ -46,9 +65,16 @@ struct TodayView: View {
 
     private var monthSummary: some View {
         PanelSection("This month") {
-            HStack(spacing: 8) {
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 8),
+                    GridItem(.flexible(), spacing: 8)
+                ],
+                spacing: 8
+            ) {
                 MetricView(title: "Spent", value: AppFormatters.currency(snapshot.monthSummary.totalSpent))
-                MetricView(title: "No-spend", value: "\(snapshot.monthSummary.noSpendDays)")
+                MetricView(title: "Spent days", value: "\(snapshot.monthSummary.spentDays)")
+                MetricView(title: "No-spend days", value: "\(snapshot.monthSummary.noSpendDays)")
                 MetricView(title: "Streak", value: "\(snapshot.monthSummary.currentNoSpendStreak)")
             }
         }
