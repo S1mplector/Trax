@@ -225,14 +225,33 @@ private struct CategoryRow: View {
             HStack {
                 Spacer()
                 Button("Cancel", action: cancelRemove)
-                Button("Remove", role: .destructive, action: confirmRemove)
-                    .buttonStyle(.borderedProminent)
+                DestructiveInlineButton(title: "Remove", action: confirmRemove)
             }
         }
         .padding(10)
         .background(Color.red.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.leading, 20)
+    }
+}
+
+private struct DestructiveInlineButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(minWidth: 86)
+                .padding(.vertical, 7)
+                .contentShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .background(Color.red.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .help(title)
     }
 }
 
