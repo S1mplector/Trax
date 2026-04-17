@@ -58,9 +58,12 @@ struct ExpenseEntryView: View {
 
                     Spacer()
 
-                    Button("Add expense", action: addExpense)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(canSubmitExpense == false)
+                    PrimaryInlineButton(
+                        title: "Add expense",
+                        minWidth: 104,
+                        isEnabled: canSubmitExpense,
+                        action: addExpense
+                    )
                 }
             }
         }

@@ -35,9 +35,12 @@ struct CategoriesView: View {
 
                     Spacer()
 
-                    Button("Add", action: submitCategory)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(canAddCategory == false)
+                    PrimaryInlineButton(
+                        title: "Add",
+                        minWidth: 48,
+                        isEnabled: canAddCategory,
+                        action: submitCategory
+                    )
                 }
             }
         }
