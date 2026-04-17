@@ -20,25 +20,6 @@ struct CategoriesView: View {
             if snapshot.archivedCategories.isEmpty == false {
                 categoryList(title: "Archived", categories: snapshot.archivedCategories)
             }
-
-        }
-        .confirmationDialog(
-            "Remove category?",
-            isPresented: Binding(
-                get: { categoryPendingRemoval != nil },
-                set: { if $0 == false { categoryPendingRemoval = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            if let category = categoryPendingRemoval {
-                Button("Remove category", role: .destructive) {
-                    Task { await store.removeCategory(id: category.id) }
-                }
-            }
-        } message: {
-            if let category = categoryPendingRemoval {
-                Text("Remove \(category.name)? Unused categories are deleted. Categories with expenses are archived to keep history intact.")
-            }
         }
     }
 
@@ -75,6 +56,7 @@ struct CategoriesView: View {
                         CategoryRow(
                             category: category,
                             isEditing: editingCategoryID == category.id,
+                            isPendingRemoval: categoryPendingRemoval?.id == category.id,
                             editedName: binding(for: category),
                             selectedPreset: ColorPreset.matching(category.colorHex),
                             edit: {
@@ -98,6 +80,7 @@ struct CategoriesView: View {
                             },
                             archiveOrRestore: {
                                 Task {
+                                    categoryPendingRemoval = nil
                                     if category.isArchived {
                                         await store.restoreCategory(id: category.id)
                                     } else {
@@ -106,7 +89,20 @@ struct CategoriesView: View {
                                 }
                             },
                             requestRemove: {
+                                editingCategoryID = nil
+                                editedName = ""
                                 categoryPendingRemoval = category
+                            },
+                            confirmRemove: {
+                                Task {
+                                    await store.removeCategory(id: category.id)
+                                    if store.errorMessage == nil {
+                                        categoryPendingRemoval = nil
+                                    }
+                                }
+                            },
+                            cancelRemove: {
+                                categoryPendingRemoval = nil
                             }
                         )
                     }
@@ -130,6 +126,7 @@ struct CategoriesView: View {
     }
 
     private func beginEditing(_ category: ExpenseCategory) {
+        categoryPendingRemoval = nil
         editingCategoryID = category.id
         editedName = category.name
     }
@@ -151,6 +148,7 @@ struct CategoriesView: View {
 private struct CategoryRow: View {
     let category: ExpenseCategory
     let isEditing: Bool
+    let isPendingRemoval: Bool
     @Binding var editedName: String
     let selectedPreset: ColorPreset
     let edit: () -> Void
@@ -159,12 +157,16 @@ private struct CategoryRow: View {
     let updateColor: (ColorPreset) -> Void
     let archiveOrRestore: () -> Void
     let requestRemove: () -> Void
+    let confirmRemove: () -> Void
+    let cancelRemove: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             row
 
-            if isEditing {
+            if isPendingRemoval {
+                removeConfirmation
+            } else if isEditing {
                 HStack {
                     ColorPresetButtons(selectedPreset: selectedPreset, select: updateColor)
 
@@ -199,7 +201,7 @@ private struct CategoryRow: View {
 
             Spacer(minLength: 12)
 
-            if isEditing == false {
+            if isEditing == false && isPendingRemoval == false {
                 CategoryIconButton(systemName: "pencil", help: "Rename", action: edit)
                 CategoryIconButton(
                     systemName: category.isArchived ? "arrow.uturn.backward" : "archivebox",
@@ -209,6 +211,28 @@ private struct CategoryRow: View {
                 CategoryIconButton(systemName: "trash", help: "Remove", role: .destructive, action: requestRemove)
             }
         }
+    }
+
+    private var removeConfirmation: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Remove \(category.name)?")
+                .font(.caption.weight(.medium))
+
+            Text("Unused categories are deleted. Categories with expenses are archived.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: cancelRemove)
+                Button("Remove", role: .destructive, action: confirmRemove)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(10)
+        .background(Color.red.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.leading, 20)
     }
 }
 
