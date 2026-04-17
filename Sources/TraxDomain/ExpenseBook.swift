@@ -18,9 +18,10 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
     @discardableResult
     public mutating func addCategory(name: String, colorHex: String) throws -> ExpenseCategory {
         let cleanName = try normalizedCategoryName(name)
+        let cleanColorHex = try normalizedColorHex(colorHex)
         try ensureCategoryNameIsUnique(cleanName)
 
-        let category = ExpenseCategory(name: cleanName, colorHex: colorHex)
+        let category = ExpenseCategory(name: cleanName, colorHex: cleanColorHex)
         categories.append(category)
         sortCategories()
         return category
@@ -39,11 +40,13 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
     }
 
     public mutating func updateCategoryColor(id: ExpenseCategory.ID, colorHex: String) throws {
+        let cleanColorHex = try normalizedColorHex(colorHex)
+
         guard let index = categories.firstIndex(where: { $0.id == id }) else {
             throw ExpenseBookError.categoryNotFound
         }
 
-        categories[index].colorHex = colorHex
+        categories[index].colorHex = cleanColorHex
     }
 
     public mutating func archiveCategory(id: ExpenseCategory.ID) throws {
@@ -158,10 +161,24 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         return cleanName
     }
 
+    private func normalizedColorHex(_ colorHex: String) throws -> String {
+        let rawHex = colorHex
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        let isHex = rawHex.unicodeScalars.allSatisfy { CharacterSet.hexadecimalDigits.contains($0) }
+
+        guard rawHex.count == 6, isHex else {
+            throw ExpenseBookError.invalidCategoryColor
+        }
+
+        return "#\(rawHex.uppercased())"
+    }
+
     private func ensureCategoryNameIsUnique(_ name: String, ignoring id: ExpenseCategory.ID? = nil) throws {
-        let lowercasedName = name.lowercased()
+        let lowercasedName = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
         let duplicate = categories.contains { category in
-            category.id != id && category.name.lowercased() == lowercasedName
+            let existingName = category.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            return category.id != id && existingName == lowercasedName
         }
 
         if duplicate {

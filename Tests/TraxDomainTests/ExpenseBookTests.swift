@@ -44,4 +44,15 @@ final class ExpenseBookTests: XCTestCase {
             XCTAssertEqual(error as? ExpenseBookError, .duplicateCategoryName)
         }
     }
+
+    func testCategoryColorIsValidatedAndNormalized() throws {
+        var book = ExpenseBook()
+
+        let category = try book.addCategory(name: "Health", colorHex: "64d2ff")
+
+        XCTAssertEqual(category.colorHex, "#64D2FF")
+        XCTAssertThrowsError(try book.addCategory(name: "Other", colorHex: "not-a-color")) { error in
+            XCTAssertEqual(error as? ExpenseBookError, .invalidCategoryColor)
+        }
+    }
 }

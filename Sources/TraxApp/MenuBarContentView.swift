@@ -21,13 +21,17 @@ struct MenuBarContentView: View {
 
             Divider()
 
-            content
-                .frame(minHeight: 380, alignment: .top)
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.trailing, 4)
+            }
+            .frame(height: 420)
 
             footer
         }
         .padding(14)
-        .frame(width: 390)
+        .frame(width: 420)
         .alert(
             "Trax",
             isPresented: Binding(
@@ -76,7 +80,7 @@ struct MenuBarContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Trax")
                     .font(.title2.weight(.semibold))
-                Text("Daily spending check-in")
+                Text(selectedSection.subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -122,6 +126,17 @@ private enum Section: String, CaseIterable, Identifiable {
             return "Expenses"
         case .categories:
             return "Categories"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .today:
+            return "Daily no-buy check-in"
+        case .expenses:
+            return "Quick expense logging"
+        case .categories:
+            return "Keep spending buckets tidy"
         }
     }
 }

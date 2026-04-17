@@ -3,6 +3,7 @@ import Foundation
 public enum ExpenseBookError: Error, Equatable, LocalizedError, Sendable {
     case categoryNameRequired
     case duplicateCategoryName
+    case invalidCategoryColor
     case categoryNotFound
     case archivedCategory
     case amountMustBePositive
@@ -15,6 +16,8 @@ public enum ExpenseBookError: Error, Equatable, LocalizedError, Sendable {
             return "Category name is required."
         case .duplicateCategoryName:
             return "A category with that name already exists."
+        case .invalidCategoryColor:
+            return "Category color must be a 6-digit hex color."
         case .categoryNotFound:
             return "Category could not be found."
         case .archivedCategory:

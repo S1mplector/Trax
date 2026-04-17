@@ -10,12 +10,12 @@ struct ExpenseEntryView: View {
     @State private var amount = ""
     @State private var selectedCategoryID: ExpenseCategory.ID?
     @State private var note = ""
+    @State private var expensePendingDeletion: Expense?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             form
             recentExpenses
-            Spacer(minLength: 0)
         }
         .onAppear {
             selectedCategoryID = selectedCategoryID ?? snapshot.activeCategories.first?.id
@@ -30,73 +30,108 @@ struct ExpenseEntryView: View {
                 self.selectedCategoryID = categories.first?.id
             }
         }
+        .confirmationDialog(
+            "Delete expense?",
+            item: $expensePendingDeletion,
+            titleVisibility: .visible
+        ) { expense in
+            Button("Delete expense", role: .destructive) {
+                Task { await store.deleteExpense(id: expense.id) }
+            }
+        } message: { expense in
+            Text("This removes \(AppFormatters.currency(expense.amount)) from \(AppFormatters.shortDay(expense.day)).")
+        }
     }
 
     private var form: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            DatePicker("Day", selection: $date, displayedComponents: .date)
+        PanelSection("Add expense", detail: "Logging spending clears a no-spend mark for that day.") {
+            VStack(alignment: .leading, spacing: 10) {
+                DatePicker("Day", selection: $date, displayedComponents: .date)
 
-            TextField("Amount", text: $amount)
-                .textFieldStyle(.roundedBorder)
+                TextField("Amount", text: $amount)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(addExpense)
 
-            Picker("Category", selection: $selectedCategoryID) {
-                Text("Pick category").tag(Optional<ExpenseCategory.ID>.none)
-                ForEach(snapshot.activeCategories) { category in
-                    Text(category.name).tag(Optional(category.id))
-                }
-            }
-
-            TextField("Note", text: $note)
-                .textFieldStyle(.roundedBorder)
-
-            Button("Add expense") {
-                Task {
-                    await store.addExpense(
-                        date: date,
-                        amountText: amount,
-                        categoryID: selectedCategoryID,
-                        note: note
-                    )
-                    if store.errorMessage == nil {
-                        amount = ""
-                        note = ""
+                Picker("Category", selection: $selectedCategoryID) {
+                    Text("Pick category").tag(Optional<ExpenseCategory.ID>.none)
+                    ForEach(snapshot.activeCategories) { category in
+                        Text(category.name).tag(Optional(category.id))
                     }
                 }
+
+                TextField("Note", text: $note)
+                    .textFieldStyle(.roundedBorder)
+
+                HStack {
+                    Button("Today") {
+                        date = Date()
+                    }
+
+                    Spacer()
+
+                    Button("Add expense", action: addExpense)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(canSubmitExpense == false)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(snapshot.activeCategories.isEmpty)
         }
     }
 
     private var recentExpenses: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Latest expenses")
-                .font(.headline)
-
+        PanelSection("Latest expenses") {
             if snapshot.expenses.isEmpty {
-                Text("No expenses yet.")
-                    .foregroundStyle(.secondary)
+                EmptyStateView(
+                    title: "No expenses yet.",
+                    message: "Log the first expense when you buy something."
+                )
             } else {
                 ForEach(snapshot.expenses.prefix(8)) { expense in
-                    ExpenseRow(expense: expense)
+                    ExpenseRow(
+                        expense: expense,
+                        categoryName: store.categoryName(for: expense.categoryID),
+                        categoryColorHex: store.categoryColor(for: expense.categoryID)
+                    ) {
+                        expensePendingDeletion = expense
+                    }
                 }
+            }
+        }
+    }
+
+    private var canSubmitExpense: Bool {
+        AmountParser.decimal(from: amount).map { $0 > 0 } == true && selectedCategoryID != nil
+    }
+
+    private func addExpense() {
+        Task {
+            await store.addExpense(
+                date: date,
+                amountText: amount,
+                categoryID: selectedCategoryID,
+                note: note
+            )
+            if store.errorMessage == nil {
+                amount = ""
+                note = ""
             }
         }
     }
 }
 
 private struct ExpenseRow: View {
-    @EnvironmentObject private var store: ExpenseStore
     let expense: Expense
+    let categoryName: String
+    let categoryColorHex: String
+    let requestDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(Color(hex: store.categoryColor(for: expense.categoryID)))
+                .fill(Color(hex: categoryColorHex))
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(store.categoryName(for: expense.categoryID))
+                Text(categoryName)
                     .font(.callout)
                 Text(AppFormatters.shortDay(expense.day))
                     .font(.caption)
@@ -108,9 +143,7 @@ private struct ExpenseRow: View {
             Text(AppFormatters.currency(expense.amount))
                 .font(.callout.weight(.medium))
 
-            Button {
-                Task { await store.deleteExpense(id: expense.id) }
-            } label: {
+            Button(action: requestDelete) {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)

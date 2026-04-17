@@ -2,7 +2,7 @@
 
 Trax is a minimal macOS menu bar app for daily expense tracking and no-buy check-ins.
 
-## What It Does
+## What It Doese
 
 - Log expenses with a day, amount, category, and optional note.
 - Mark a day as no-spend when nothing was bought.

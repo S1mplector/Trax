@@ -10,7 +10,6 @@ struct TodayView: View {
             todayStatus
             monthSummary
             recentDays
-            Spacer(minLength: 0)
         }
     }
 
@@ -46,10 +45,7 @@ struct TodayView: View {
     }
 
     private var monthSummary: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("This month")
-                .font(.headline)
-
+        PanelSection("This month") {
             HStack(spacing: 8) {
                 MetricView(title: "Spent", value: AppFormatters.currency(snapshot.monthSummary.totalSpent))
                 MetricView(title: "No-spend", value: "\(snapshot.monthSummary.noSpendDays)")
@@ -59,10 +55,7 @@ struct TodayView: View {
     }
 
     private var recentDays: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Recent days")
-                .font(.headline)
-
+        PanelSection("Recent days") {
             ForEach(snapshot.recentDays.prefix(7)) { day in
                 HStack(spacing: 10) {
                     StatusDot(status: day.status)

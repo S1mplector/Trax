@@ -40,17 +40,18 @@ enum AmountParser {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else { return nil }
 
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.locale = .current
-
-        if let number = formatter.number(from: trimmed) {
-            return number.decimalValue
-        }
-
+        let locale = Locale.current
+        let decimalSeparator = locale.decimalSeparator ?? "."
+        let groupingSeparator = locale.groupingSeparator ?? ","
         let normalized = trimmed
-            .replacingOccurrences(of: ",", with: ".")
-            .filter { "0123456789.".contains($0) }
+            .replacingOccurrences(of: groupingSeparator, with: "")
+            .replacingOccurrences(of: decimalSeparator, with: ".")
+            .replacingOccurrences(of: " ", with: "")
+        let amountPattern = #"^[0-9]+(\.[0-9]{1,2})?$"#
+
+        guard normalized.range(of: amountPattern, options: .regularExpression) != nil else {
+            return nil
+        }
 
         return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
     }
