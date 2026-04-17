@@ -4,15 +4,38 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
     public private(set) var categories: [ExpenseCategory]
     public private(set) var expenses: [Expense]
     public private(set) var dailyLogs: [DailyLog]
+    public private(set) var settings: ExpenseBookSettings
 
     public init(
         categories: [ExpenseCategory] = [],
         expenses: [Expense] = [],
-        dailyLogs: [DailyLog] = []
+        dailyLogs: [DailyLog] = [],
+        settings: ExpenseBookSettings = ExpenseBookSettings()
     ) {
         self.categories = categories
         self.expenses = expenses
         self.dailyLogs = dailyLogs
+        self.settings = settings
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.categories = try container.decodeIfPresent([ExpenseCategory].self, forKey: .categories) ?? []
+        self.expenses = try container.decodeIfPresent([Expense].self, forKey: .expenses) ?? []
+        self.dailyLogs = try container.decodeIfPresent([DailyLog].self, forKey: .dailyLogs) ?? []
+        self.settings = try container.decodeIfPresent(ExpenseBookSettings.self, forKey: .settings) ?? ExpenseBookSettings()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(categories, forKey: .categories)
+        try container.encode(expenses, forKey: .expenses)
+        try container.encode(dailyLogs, forKey: .dailyLogs)
+        try container.encode(settings, forKey: .settings)
+    }
+
+    public mutating func updateCurrencyCode(_ currencyCode: String) throws {
+        settings.currencyCode = try normalizedCurrencyCode(currencyCode)
     }
 
     @discardableResult
@@ -175,6 +198,18 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         return "#\(rawHex.uppercased())"
     }
 
+    private func normalizedCurrencyCode(_ currencyCode: String) throws -> String {
+        let cleanCode = currencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let letters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        let isCode = cleanCode.unicodeScalars.allSatisfy { letters.contains($0) }
+
+        guard cleanCode.count == 3, isCode else {
+            throw ExpenseBookError.invalidCurrencyCode
+        }
+
+        return cleanCode
+    }
+
     private func ensureCategoryNameIsUnique(_ name: String, ignoring id: ExpenseCategory.ID? = nil) throws {
         let lowercasedName = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
         let duplicate = categories.contains { category in
@@ -206,5 +241,12 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
 
     private mutating func sortDailyLogs() {
         dailyLogs.sort { $0.day > $1.day }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case categories
+        case expenses
+        case dailyLogs
+        case settings
     }
 }

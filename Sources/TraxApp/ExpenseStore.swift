@@ -106,6 +106,12 @@ final class ExpenseStore: ObservableObject {
         }
     }
 
+    func updateCurrencyCode(_ currencyCode: String) async {
+        await perform {
+            try await tracker.updateCurrencyCode(currencyCode)
+        }
+    }
+
     func categoryName(for id: ExpenseCategory.ID) -> String {
         snapshot?.categories.first { $0.id == id }?.name ?? "Unknown"
     }

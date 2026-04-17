@@ -25,7 +25,7 @@ struct TodayView: View {
             HStack {
                 StatusPill(status: snapshot.today.status)
                 Spacer()
-                Text(AppFormatters.currency(snapshot.today.totalSpent))
+                Text(AppFormatters.currency(snapshot.today.totalSpent, currencyCode: snapshot.settings.currencyCode))
                     .font(.title3.weight(.semibold))
             }
 
@@ -72,7 +72,7 @@ struct TodayView: View {
                 ],
                 spacing: 8
             ) {
-                MetricView(title: "Spent", value: AppFormatters.currency(snapshot.monthSummary.totalSpent))
+                MetricView(title: "Spent", value: AppFormatters.currency(snapshot.monthSummary.totalSpent, currencyCode: snapshot.settings.currencyCode))
                 MetricView(title: "Spent days", value: "\(snapshot.monthSummary.spentDays)")
                 MetricView(title: "No-spend days", value: "\(snapshot.monthSummary.noSpendDays)")
                 MetricView(title: "Streak", value: "\(snapshot.monthSummary.currentNoSpendStreak)")
@@ -87,7 +87,7 @@ struct TodayView: View {
                     StatusDot(status: day.status)
                     Text(AppFormatters.shortDay(day.day))
                     Spacer()
-                    Text(day.status == .spent ? AppFormatters.currency(day.totalSpent) : label(for: day.status))
+                    Text(day.status == .spent ? AppFormatters.currency(day.totalSpent, currencyCode: snapshot.settings.currencyCode) : label(for: day.status))
                         .foregroundStyle(.secondary)
                 }
                 .font(.callout)

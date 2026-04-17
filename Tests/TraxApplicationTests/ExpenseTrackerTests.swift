@@ -33,6 +33,16 @@ final class ExpenseTrackerTests: XCTestCase {
         XCTAssertEqual(snapshot.monthSummary.unloggedDays, 14)
         XCTAssertEqual(snapshot.monthSummary.currentNoSpendStreak, 0)
     }
+
+    func testSnapshotIncludesUpdatedCurrencyCode() async throws {
+        let repository = InMemoryExpenseBookRepository()
+        let tracker = ExpenseTracker(repository: repository)
+
+        try await tracker.updateCurrencyCode("usd")
+        let snapshot = try await tracker.snapshot(today: Day(year: 2026, month: 4, day: 17))
+
+        XCTAssertEqual(snapshot.settings.currencyCode, "USD")
+    }
 }
 
 private actor InMemoryExpenseBookRepository: ExpenseBookRepository {

@@ -59,6 +59,8 @@ struct MenuBarContentView: View {
                 ExpenseEntryView(snapshot: snapshot)
             case .categories:
                 CategoriesView(snapshot: snapshot)
+            case .settings:
+                SettingsView(snapshot: snapshot)
             }
         } else if store.isLoading {
             ProgressView()
@@ -115,6 +117,7 @@ private enum Section: String, CaseIterable, Identifiable {
     case today
     case expenses
     case categories
+    case settings
 
     var id: String { rawValue }
 
@@ -126,6 +129,8 @@ private enum Section: String, CaseIterable, Identifiable {
             return "Expenses"
         case .categories:
             return "Categories"
+        case .settings:
+            return "Settings"
         }
     }
 
@@ -137,6 +142,8 @@ private enum Section: String, CaseIterable, Identifiable {
             return "Quick expense logging"
         case .categories:
             return "Keep spending buckets tidy"
+        case .settings:
+            return "Currency and preferences"
         }
     }
 }

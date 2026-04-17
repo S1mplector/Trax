@@ -92,6 +92,12 @@ public actor ExpenseTracker {
         try await persist(book)
     }
 
+    public func updateCurrencyCode(_ currencyCode: String) async throws {
+        var book = try await currentBook()
+        try book.updateCurrencyCode(currencyCode)
+        try await persist(book)
+    }
+
     private func currentBook() async throws -> ExpenseBook {
         if let cachedBook {
             return cachedBook
@@ -144,6 +150,7 @@ public actor ExpenseTracker {
         let archivedCategories = book.categories.filter(\.isArchived)
 
         return ExpenseBookSnapshot(
+            settings: book.settings,
             categories: book.categories,
             activeCategories: activeCategories,
             archivedCategories: archivedCategories,

@@ -2,13 +2,6 @@ import Foundation
 import TraxDomain
 
 enum AppFormatters {
-    private static let currencyFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.locale = .current
-        return formatter
-    }()
-
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -22,8 +15,12 @@ enum AppFormatters {
         return formatter
     }()
 
-    static func currency(_ amount: Decimal) -> String {
-        currencyFormatter.string(from: amount as NSDecimalNumber) ?? "\(amount)"
+    static func currency(_ amount: Decimal, currencyCode: String) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = .current
+        formatter.currencyCode = currencyCode
+        return formatter.string(from: amount as NSDecimalNumber) ?? "\(currencyCode) \(amount)"
     }
 
     static func day(_ day: Day) -> String {

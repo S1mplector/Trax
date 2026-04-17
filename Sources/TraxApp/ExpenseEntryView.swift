@@ -45,7 +45,7 @@ struct ExpenseEntryView: View {
             }
         } message: {
             if let expense = expensePendingDeletion {
-                Text("This removes \(AppFormatters.currency(expense.amount)) from \(AppFormatters.shortDay(expense.day)).")
+                Text("This removes \(AppFormatters.currency(expense.amount, currencyCode: snapshot.settings.currencyCode)) from \(AppFormatters.shortDay(expense.day)).")
             }
         }
     }
@@ -96,7 +96,8 @@ struct ExpenseEntryView: View {
                     ExpenseRow(
                         expense: expense,
                         categoryName: store.categoryName(for: expense.categoryID),
-                        categoryColorHex: store.categoryColor(for: expense.categoryID)
+                        categoryColorHex: store.categoryColor(for: expense.categoryID),
+                        currencyCode: snapshot.settings.currencyCode
                     ) {
                         expensePendingDeletion = expense
                     }
@@ -129,6 +130,7 @@ private struct ExpenseRow: View {
     let expense: Expense
     let categoryName: String
     let categoryColorHex: String
+    let currencyCode: String
     let requestDelete: () -> Void
 
     var body: some View {
@@ -147,7 +149,7 @@ private struct ExpenseRow: View {
 
             Spacer()
 
-            Text(AppFormatters.currency(expense.amount))
+            Text(AppFormatters.currency(expense.amount, currencyCode: currencyCode))
                 .font(.callout.weight(.medium))
 
             Button(action: requestDelete) {

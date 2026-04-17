@@ -60,6 +60,7 @@ public struct MonthSummary: Equatable, Sendable {
 }
 
 public struct ExpenseBookSnapshot: Equatable, Sendable {
+    public let settings: ExpenseBookSettings
     public let categories: [ExpenseCategory]
     public let activeCategories: [ExpenseCategory]
     public let archivedCategories: [ExpenseCategory]
@@ -70,6 +71,7 @@ public struct ExpenseBookSnapshot: Equatable, Sendable {
     public let monthSummary: MonthSummary
 
     public init(
+        settings: ExpenseBookSettings,
         categories: [ExpenseCategory],
         activeCategories: [ExpenseCategory],
         archivedCategories: [ExpenseCategory],
@@ -79,6 +81,7 @@ public struct ExpenseBookSnapshot: Equatable, Sendable {
         recentDays: [DailySummary],
         monthSummary: MonthSummary
     ) {
+        self.settings = settings
         self.categories = categories
         self.activeCategories = activeCategories
         self.archivedCategories = archivedCategories

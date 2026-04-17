@@ -4,6 +4,7 @@ public enum ExpenseBookError: Error, Equatable, LocalizedError, Sendable {
     case categoryNameRequired
     case duplicateCategoryName
     case invalidCategoryColor
+    case invalidCurrencyCode
     case categoryNotFound
     case archivedCategory
     case amountMustBePositive
@@ -18,6 +19,8 @@ public enum ExpenseBookError: Error, Equatable, LocalizedError, Sendable {
             return "A category with that name already exists."
         case .invalidCategoryColor:
             return "Category color must be a 6-digit hex color."
+        case .invalidCurrencyCode:
+            return "Currency must use a 3-letter ISO code."
         case .categoryNotFound:
             return "Category could not be found."
         case .archivedCategory:

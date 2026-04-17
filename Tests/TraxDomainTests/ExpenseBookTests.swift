@@ -55,4 +55,15 @@ final class ExpenseBookTests: XCTestCase {
             XCTAssertEqual(error as? ExpenseBookError, .invalidCategoryColor)
         }
     }
+
+    func testCurrencyCodeIsValidatedAndNormalized() throws {
+        var book = ExpenseBook()
+
+        try book.updateCurrencyCode("usd")
+
+        XCTAssertEqual(book.settings.currencyCode, "USD")
+        XCTAssertThrowsError(try book.updateCurrencyCode("euro")) { error in
+            XCTAssertEqual(error as? ExpenseBookError, .invalidCurrencyCode)
+        }
+    }
 }
