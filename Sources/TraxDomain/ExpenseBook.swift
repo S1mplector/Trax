@@ -38,6 +38,10 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         settings.currencyCode = try normalizedCurrencyCode(currencyCode)
     }
 
+    public mutating func updateSpendingBreakdownMode(_ mode: SpendingBreakdownMode) {
+        settings.spendingBreakdownMode = mode
+    }
+
     @discardableResult
     public mutating func addCategory(name: String, colorHex: String, isEssential: Bool = false) throws -> ExpenseCategory {
         let cleanName = try normalizedCategoryName(name)

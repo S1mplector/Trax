@@ -46,6 +46,16 @@ final class ExpenseTrackerTests: XCTestCase {
         XCTAssertEqual(snapshot.settings.currencyCode, "USD")
     }
 
+    func testSnapshotIncludesUpdatedSpendingBreakdownMode() async throws {
+        let repository = InMemoryExpenseBookRepository()
+        let tracker = ExpenseTracker(repository: repository)
+
+        try await tracker.updateSpendingBreakdownMode(.bars)
+        let snapshot = try await tracker.snapshot(today: Day(year: 2026, month: 4, day: 17))
+
+        XCTAssertEqual(snapshot.settings.spendingBreakdownMode, .bars)
+    }
+
     func testSnapshotIncludesMonthCategoryBreakdown() async throws {
         let repository = InMemoryExpenseBookRepository()
         let tracker = ExpenseTracker(repository: repository)

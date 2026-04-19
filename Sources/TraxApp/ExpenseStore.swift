@@ -118,6 +118,12 @@ final class ExpenseStore: ObservableObject {
         }
     }
 
+    func updateSpendingBreakdownMode(_ mode: SpendingBreakdownMode) async {
+        await perform {
+            try await tracker.updateSpendingBreakdownMode(mode)
+        }
+    }
+
     func categoryName(for id: ExpenseCategory.ID) -> String {
         snapshot?.categories.first { $0.id == id }?.name ?? "Unknown"
     }

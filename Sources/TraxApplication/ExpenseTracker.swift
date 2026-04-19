@@ -104,6 +104,12 @@ public actor ExpenseTracker {
         try await persist(book)
     }
 
+    public func updateSpendingBreakdownMode(_ mode: SpendingBreakdownMode) async throws {
+        var book = try await currentBook()
+        book.updateSpendingBreakdownMode(mode)
+        try await persist(book)
+    }
+
     private func currentBook() async throws -> ExpenseBook {
         if let cachedBook {
             return cachedBook

@@ -67,6 +67,27 @@ final class ExpenseBookTests: XCTestCase {
         }
     }
 
+    func testSpendingBreakdownModeCanBeUpdated() throws {
+        var book = ExpenseBook()
+
+        book.updateSpendingBreakdownMode(.donut)
+
+        XCTAssertEqual(book.settings.spendingBreakdownMode, .donut)
+    }
+
+    func testOldSettingsPayloadDefaultsSpendingBreakdownMode() throws {
+        let json = """
+        {
+          "currencyCode": "EUR"
+        }
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(ExpenseBookSettings.self, from: json)
+
+        XCTAssertEqual(settings.currencyCode, "EUR")
+        XCTAssertEqual(settings.spendingBreakdownMode, .list)
+    }
+
     func testCategoryCanBeMarkedEssential() throws {
         var book = ExpenseBook()
         let category = try book.addCategory(name: "Groceries", colorHex: "#34C759")
