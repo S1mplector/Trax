@@ -38,6 +38,15 @@ open build/Trax.app
 
 The generated app bundle uses `LSUIElement`, so it behaves as a menu bar app without a Dock icon.
 
+## Build a DMG
+
+```sh
+Scripts/package_dmg.sh release
+open ~/Desktop/Trax.dmg
+```
+
+The script creates `build/Trax.dmg` and copies it to your Desktop.
+
 ## Data Location
 
 The live app stores data at:

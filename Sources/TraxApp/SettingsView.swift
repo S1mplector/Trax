@@ -4,62 +4,59 @@ import TraxApplication
 struct SettingsView: View {
     @EnvironmentObject private var store: ExpenseStore
     let snapshot: ExpenseBookSnapshot
-    @State private var customCurrencyCode = ""
+    @State private var launchAtLoginStatus = LaunchAtLoginController.status()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             PanelSection("Currency", detail: "Choose the currency Trax uses when showing amounts.") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Picker(
-                        "Currency",
-                        selection: Binding(
-                            get: { snapshot.settings.currencyCode },
-                            set: { currencyCode in
-                                Task { await store.updateCurrencyCode(currencyCode) }
-                            }
-                        )
-                    ) {
-                        ForEach(CurrencyOption.options(including: snapshot.settings.currencyCode)) { option in
-                            Text(option.title).tag(option.code)
+                Picker(
+                    "Currency",
+                    selection: Binding(
+                        get: { snapshot.settings.currencyCode },
+                        set: { currencyCode in
+                            Task { await store.updateCurrencyCode(currencyCode) }
                         }
+                    )
+                ) {
+                    ForEach(CurrencyOption.options(including: snapshot.settings.currencyCode)) { option in
+                        Text(option.title).tag(option.code)
                     }
-                    .pickerStyle(.menu)
+                }
+                .pickerStyle(.menu)
+            }
 
-                    HStack {
-                        TextField("ISO code", text: $customCurrencyCode)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 96)
-                            .onSubmit(submitCustomCurrency)
+            PanelSection("Launch") {
+                Toggle(
+                    "Open Trax at login",
+                    isOn: Binding(
+                        get: { launchAtLoginStatus.isEnabled },
+                        set: { isEnabled in
+                            updateLaunchAtLogin(isEnabled)
+                        }
+                    )
+                )
+                .disabled(launchAtLoginStatus.canToggle == false)
 
-                        Button("Set", action: submitCustomCurrency)
-                            .disabled(canSubmitCustomCurrency == false)
-
-                        Spacer()
-                    }
-
-                    Text("Example: \(AppFormatters.currency(Decimal(12.34), currencyCode: snapshot.settings.currencyCode))")
+                if let message = launchAtLoginStatus.message {
+                    Text(message)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .onAppear {
-            customCurrencyCode = snapshot.settings.currencyCode
-        }
-        .onChange(of: snapshot.settings.currencyCode) { _, currencyCode in
-            customCurrencyCode = currencyCode
+            launchAtLoginStatus = LaunchAtLoginController.status()
         }
     }
 
-    private var canSubmitCustomCurrency: Bool {
-        let cleanCode = customCurrencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let letters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        return cleanCode.count == 3 && cleanCode.unicodeScalars.allSatisfy { letters.contains($0) }
-    }
-
-    private func submitCustomCurrency() {
-        let currencyCode = customCurrencyCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        Task { await store.updateCurrencyCode(currencyCode) }
+    private func updateLaunchAtLogin(_ isEnabled: Bool) {
+        do {
+            try LaunchAtLoginController.setEnabled(isEnabled)
+            launchAtLoginStatus = LaunchAtLoginController.status()
+        } catch {
+            launchAtLoginStatus = LaunchAtLoginController.status()
+            store.errorMessage = error.localizedDescription
+        }
     }
 }
 

@@ -4,19 +4,12 @@ import TraxApplication
 struct TodayView: View {
     @EnvironmentObject private var store: ExpenseStore
     let snapshot: ExpenseBookSnapshot
-    @State private var noSpendNote = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             todayStatus
             monthSummary
             recentDays
-        }
-        .onAppear {
-            noSpendNote = snapshot.today.note
-        }
-        .onChange(of: snapshot.today.note) { _, note in
-            noSpendNote = note
         }
     }
 
@@ -33,23 +26,11 @@ struct TodayView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            if snapshot.today.status != .spent {
-                TextField("Optional note", text: $noSpendNote)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit {
-                        Task { await store.markTodayNoSpend(note: noSpendNote) }
-                    }
-            } else if snapshot.today.note.isEmpty == false {
-                Text(snapshot.today.note)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             HStack {
-                Button(snapshot.today.status == .noSpend ? "Update no-spend" : "No spend today") {
-                    Task { await store.markTodayNoSpend(note: noSpendNote) }
+                Button("No spend today") {
+                    Task { await store.markTodayNoSpend() }
                 }
-                .disabled(snapshot.today.status == .spent)
+                .disabled(snapshot.today.status != .unlogged)
 
                 if snapshot.today.status == .noSpend {
                     Button("Clear") {
