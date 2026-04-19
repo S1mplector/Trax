@@ -39,12 +39,12 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
     }
 
     @discardableResult
-    public mutating func addCategory(name: String, colorHex: String) throws -> ExpenseCategory {
+    public mutating func addCategory(name: String, colorHex: String, isEssential: Bool = false) throws -> ExpenseCategory {
         let cleanName = try normalizedCategoryName(name)
         let cleanColorHex = try normalizedColorHex(colorHex)
         try ensureCategoryNameIsUnique(cleanName)
 
-        let category = ExpenseCategory(name: cleanName, colorHex: cleanColorHex)
+        let category = ExpenseCategory(name: cleanName, colorHex: cleanColorHex, isEssential: isEssential)
         categories.append(category)
         sortCategories()
         return category
@@ -70,6 +70,14 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         }
 
         categories[index].colorHex = cleanColorHex
+    }
+
+    public mutating func updateCategoryEssential(id: ExpenseCategory.ID, isEssential: Bool) throws {
+        guard let index = categories.firstIndex(where: { $0.id == id }) else {
+            throw ExpenseBookError.categoryNotFound
+        }
+
+        categories[index].isEssential = isEssential
     }
 
     public mutating func archiveCategory(id: ExpenseCategory.ID) throws {

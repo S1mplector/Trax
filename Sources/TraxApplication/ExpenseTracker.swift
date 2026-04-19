@@ -24,9 +24,9 @@ public actor ExpenseTracker {
     }
 
     @discardableResult
-    public func addCategory(name: String, colorHex: String) async throws -> ExpenseCategory {
+    public func addCategory(name: String, colorHex: String, isEssential: Bool = false) async throws -> ExpenseCategory {
         var book = try await currentBook()
-        let category = try book.addCategory(name: name, colorHex: colorHex)
+        let category = try book.addCategory(name: name, colorHex: colorHex, isEssential: isEssential)
         try await persist(book)
         return category
     }
@@ -40,6 +40,12 @@ public actor ExpenseTracker {
     public func updateCategoryColor(id: ExpenseCategory.ID, colorHex: String) async throws {
         var book = try await currentBook()
         try book.updateCategoryColor(id: id, colorHex: colorHex)
+        try await persist(book)
+    }
+
+    public func updateCategoryEssential(id: ExpenseCategory.ID, isEssential: Bool) async throws {
+        var book = try await currentBook()
+        try book.updateCategoryEssential(id: id, isEssential: isEssential)
         try await persist(book)
     }
 
@@ -120,17 +126,17 @@ public actor ExpenseTracker {
 
     private func seedDefaultCategories(into book: ExpenseBook) -> ExpenseBook {
         var seededBook = book
-        let defaults: [(String, String)] = [
-            ("Groceries", "#34C759"),
-            ("Transport", "#0A84FF"),
-            ("Home", "#FFD60A"),
-            ("Health", "#64D2FF"),
-            ("Wants", "#FF453A"),
-            ("Other", "#8E8E93")
+        let defaults: [(String, String, Bool)] = [
+            ("Groceries", "#34C759", true),
+            ("Transport", "#0A84FF", true),
+            ("Home", "#FFD60A", true),
+            ("Health", "#64D2FF", true),
+            ("Wants", "#FF453A", false),
+            ("Other", "#8E8E93", false)
         ]
 
         for category in defaults {
-            _ = try? seededBook.addCategory(name: category.0, colorHex: category.1)
+            _ = try? seededBook.addCategory(name: category.0, colorHex: category.1, isEssential: category.2)
         }
 
         return seededBook
@@ -253,6 +259,7 @@ public actor ExpenseTracker {
                 categoryID: categoryID,
                 categoryName: category.name,
                 colorHex: category.colorHex,
+                isEssential: category.isEssential,
                 totalSpent: totalSpent,
                 expenseCount: expenses.count
             )

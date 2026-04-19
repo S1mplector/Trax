@@ -70,9 +70,9 @@ final class ExpenseStore: ObservableObject {
         }
     }
 
-    func addCategory(name: String, colorHex: String) async {
+    func addCategory(name: String, colorHex: String, isEssential: Bool = false) async {
         await perform {
-            try await tracker.addCategory(name: name, colorHex: colorHex)
+            try await tracker.addCategory(name: name, colorHex: colorHex, isEssential: isEssential)
         }
     }
 
@@ -85,6 +85,12 @@ final class ExpenseStore: ObservableObject {
     func updateCategoryColor(id: ExpenseCategory.ID, colorHex: String) async {
         await perform {
             try await tracker.updateCategoryColor(id: id, colorHex: colorHex)
+        }
+    }
+
+    func updateCategoryEssential(id: ExpenseCategory.ID, isEssential: Bool) async {
+        await perform {
+            try await tracker.updateCategoryEssential(id: id, isEssential: isEssential)
         }
     }
 
@@ -116,8 +122,8 @@ final class ExpenseStore: ObservableObject {
         snapshot?.categories.first { $0.id == id }?.name ?? "Unknown"
     }
 
-    func categoryColor(for id: ExpenseCategory.ID) -> String {
-        snapshot?.categories.first { $0.id == id }?.colorHex ?? "#8E8E93"
+    func categoryIsEssential(for id: ExpenseCategory.ID) -> Bool {
+        snapshot?.categories.first { $0.id == id }?.isEssential ?? false
     }
 
     private var today: Day {

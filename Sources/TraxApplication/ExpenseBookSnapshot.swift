@@ -63,6 +63,7 @@ public struct CategorySpendingSummary: Equatable, Identifiable, Sendable {
     public let categoryID: ExpenseCategory.ID
     public let categoryName: String
     public let colorHex: String
+    public let isEssential: Bool
     public let totalSpent: Decimal
     public let expenseCount: Int
 
@@ -72,12 +73,14 @@ public struct CategorySpendingSummary: Equatable, Identifiable, Sendable {
         categoryID: ExpenseCategory.ID,
         categoryName: String,
         colorHex: String,
+        isEssential: Bool,
         totalSpent: Decimal,
         expenseCount: Int
     ) {
         self.categoryID = categoryID
         self.categoryName = categoryName
         self.colorHex = colorHex
+        self.isEssential = isEssential
         self.totalSpent = totalSpent
         self.expenseCount = expenseCount
     }

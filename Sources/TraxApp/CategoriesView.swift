@@ -8,6 +8,7 @@ struct CategoriesView: View {
 
     @State private var newName = ""
     @State private var selectedColor = ColorPreset.presets.first!
+    @State private var newCategoryIsEssential = false
     @State private var editingCategoryID: ExpenseCategory.ID?
     @State private var editedName = ""
     @State private var categoryPendingRemoval: ExpenseCategory?
@@ -34,6 +35,11 @@ struct CategoriesView: View {
                     ColorPresetPicker(selection: $selectedColor)
 
                     Spacer()
+                }
+
+                HStack {
+                    Toggle("Essential", isOn: $newCategoryIsEssential)
+                        .toggleStyle(.checkbox)
 
                     PrimaryInlineButton(
                         title: "Add",
@@ -80,6 +86,14 @@ struct CategoriesView: View {
                             },
                             updateColor: { preset in
                                 Task { await store.updateCategoryColor(id: category.id, colorHex: preset.hex) }
+                            },
+                            toggleEssential: {
+                                Task {
+                                    await store.updateCategoryEssential(
+                                        id: category.id,
+                                        isEssential: category.isEssential == false
+                                    )
+                                }
                             },
                             archiveOrRestore: {
                                 Task {
@@ -140,9 +154,10 @@ struct CategoriesView: View {
 
     private func submitCategory() {
         Task {
-            await store.addCategory(name: newName, colorHex: selectedColor.hex)
+            await store.addCategory(name: newName, colorHex: selectedColor.hex, isEssential: newCategoryIsEssential)
             if store.errorMessage == nil {
                 newName = ""
+                newCategoryIsEssential = false
             }
         }
     }
@@ -158,6 +173,7 @@ private struct CategoryRow: View {
     let save: () -> Void
     let cancel: () -> Void
     let updateColor: (ColorPreset) -> Void
+    let toggleEssential: () -> Void
     let archiveOrRestore: () -> Void
     let requestRemove: () -> Void
     let confirmRemove: () -> Void
@@ -197,9 +213,15 @@ private struct CategoryRow: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(save)
             } else {
-                Text(category.name)
-                    .foregroundStyle(category.isArchived ? .secondary : .primary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(category.name)
+                        .foregroundStyle(category.isArchived ? .secondary : .primary)
+                        .lineLimit(1)
+
+                    Text(SpendKindColors.label(isEssential: category.isEssential))
+                        .font(.caption)
+                        .foregroundStyle(SpendKindColors.color(isEssential: category.isEssential))
+                }
             }
 
             Spacer(minLength: 12)
@@ -210,6 +232,11 @@ private struct CategoryRow: View {
                     systemName: category.isArchived ? "arrow.uturn.backward" : "archivebox",
                     help: category.isArchived ? "Restore" : "Archive",
                     action: archiveOrRestore
+                )
+                CategoryIconButton(
+                    systemName: category.isEssential ? "exclamationmark.triangle.fill" : "tag.fill",
+                    help: category.isEssential ? "Mark non-essential" : "Mark essential",
+                    action: toggleEssential
                 )
                 CategoryIconButton(systemName: "trash", help: "Remove", role: .destructive, action: requestRemove)
             }

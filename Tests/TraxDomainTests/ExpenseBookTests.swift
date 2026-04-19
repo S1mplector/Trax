@@ -66,4 +66,28 @@ final class ExpenseBookTests: XCTestCase {
             XCTAssertEqual(error as? ExpenseBookError, .invalidCurrencyCode)
         }
     }
+
+    func testCategoryCanBeMarkedEssential() throws {
+        var book = ExpenseBook()
+        let category = try book.addCategory(name: "Groceries", colorHex: "#34C759")
+
+        try book.updateCategoryEssential(id: category.id, isEssential: true)
+
+        XCTAssertTrue(book.category(id: category.id)?.isEssential == true)
+    }
+
+    func testOldCategoryPayloadInfersCommonEssentialCategories() throws {
+        let json = """
+        {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "name": "Groceries",
+          "colorHex": "#34C759",
+          "isArchived": false
+        }
+        """.data(using: .utf8)!
+
+        let category = try JSONDecoder().decode(ExpenseCategory.self, from: json)
+
+        XCTAssertTrue(category.isEssential)
+    }
 }

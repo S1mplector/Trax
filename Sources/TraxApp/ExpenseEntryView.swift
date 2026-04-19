@@ -81,7 +81,7 @@ struct ExpenseEntryView: View {
                     ExpenseRow(
                         expense: expense,
                         categoryName: store.categoryName(for: expense.categoryID),
-                        categoryColorHex: store.categoryColor(for: expense.categoryID),
+                        isEssential: store.categoryIsEssential(for: expense.categoryID),
                         currencyCode: snapshot.settings.currencyCode,
                         isPendingDeletion: expensePendingDeletion?.id == expense.id,
                         requestDelete: {
@@ -127,7 +127,7 @@ struct ExpenseEntryView: View {
 private struct ExpenseRow: View {
     let expense: Expense
     let categoryName: String
-    let categoryColorHex: String
+    let isEssential: Bool
     let currencyCode: String
     let isPendingDeletion: Bool
     let requestDelete: () -> Void
@@ -148,13 +148,13 @@ private struct ExpenseRow: View {
     private var row: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(Color(hex: categoryColorHex))
+                .fill(SpendKindColors.color(isEssential: isEssential))
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(categoryName)
                     .font(.callout)
-                Text(AppFormatters.shortDay(expense.day))
+                Text("\(AppFormatters.shortDay(expense.day)) · \(SpendKindColors.label(isEssential: isEssential))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

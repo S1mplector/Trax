@@ -87,13 +87,13 @@ private struct CategoryBreakdownRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Circle()
-                    .fill(Color(hex: category.colorHex))
+                    .fill(SpendKindColors.color(isEssential: category.isEssential))
                     .frame(width: 9, height: 9)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(category.categoryName)
                         .font(.callout.weight(.medium))
-                    Text("\(category.expenseCount) expense\(category.expenseCount == 1 ? "" : "s")")
+                    Text("\(category.expenseCount) expense\(category.expenseCount == 1 ? "" : "s") · \(SpendKindColors.label(isEssential: category.isEssential))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -105,7 +105,7 @@ private struct CategoryBreakdownRow: View {
             }
 
             ProgressView(value: progress)
-                .tint(Color(hex: category.colorHex))
+                .tint(SpendKindColors.color(isEssential: category.isEssential))
         }
     }
 
