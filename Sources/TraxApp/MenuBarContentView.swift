@@ -7,10 +7,15 @@ struct MenuBarContentView: View {
     @EnvironmentObject private var store: ExpenseStore
     @State private var selectedSection = Section.today
     @State private var isShowingSpendingBreakdown = false
+    @State private var selectedDayDetail: Day?
 
     var body: some View {
         Group {
-            if isShowingSpendingBreakdown, let snapshot = store.snapshot {
+            if let selectedDayDetail, let snapshot = store.snapshot {
+                DayDetailView(snapshot: snapshot, day: selectedDayDetail) {
+                    self.selectedDayDetail = nil
+                }
+            } else if isShowingSpendingBreakdown, let snapshot = store.snapshot {
                 SpendingBreakdownView(snapshot: snapshot) {
                     isShowingSpendingBreakdown = false
                 }
@@ -66,9 +71,15 @@ struct MenuBarContentView: View {
         if let snapshot = store.snapshot {
             switch selectedSection {
             case .today:
-                TodayView(snapshot: snapshot) {
-                    isShowingSpendingBreakdown = true
-                }
+                TodayView(
+                    snapshot: snapshot,
+                    showSpendingBreakdown: {
+                        isShowingSpendingBreakdown = true
+                    },
+                    showDayDetail: { day in
+                        selectedDayDetail = day
+                    }
+                )
             case .expenses:
                 ExpenseEntryView(snapshot: snapshot)
             case .categories:
