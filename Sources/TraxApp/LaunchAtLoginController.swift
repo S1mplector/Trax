@@ -27,7 +27,7 @@ enum LaunchAtLoginStatus: Equatable {
         case .requiresApproval:
             return "Approval needed in System Settings."
         case .unavailable:
-            return "Install the app bundle before enabling this."
+            return "Run the packaged app before enabling this."
         }
     }
 }
@@ -42,17 +42,33 @@ enum LaunchAtLoginController {
         case .requiresApproval:
             return .requiresApproval
         case .notFound:
-            return .unavailable
+            return isRunningFromAppBundle ? .disabled : .unavailable
         @unknown default:
             return .unavailable
         }
     }
 
     static func setEnabled(_ isEnabled: Bool) throws {
+        guard isRunningFromAppBundle else {
+            throw LaunchAtLoginError.notRunningFromAppBundle
+        }
+
         if isEnabled {
             try SMAppService.mainApp.register()
         } else {
             try SMAppService.mainApp.unregister()
         }
+    }
+
+    private static var isRunningFromAppBundle: Bool {
+        Bundle.main.bundleURL.pathExtension == "app"
+    }
+}
+
+private enum LaunchAtLoginError: LocalizedError {
+    case notRunningFromAppBundle
+
+    var errorDescription: String? {
+        "Run Trax from the packaged app before enabling launch at login."
     }
 }

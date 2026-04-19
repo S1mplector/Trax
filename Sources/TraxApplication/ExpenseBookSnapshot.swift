@@ -59,6 +59,30 @@ public struct MonthSummary: Equatable, Sendable {
     }
 }
 
+public struct CategorySpendingSummary: Equatable, Identifiable, Sendable {
+    public let categoryID: ExpenseCategory.ID
+    public let categoryName: String
+    public let colorHex: String
+    public let totalSpent: Decimal
+    public let expenseCount: Int
+
+    public var id: ExpenseCategory.ID { categoryID }
+
+    public init(
+        categoryID: ExpenseCategory.ID,
+        categoryName: String,
+        colorHex: String,
+        totalSpent: Decimal,
+        expenseCount: Int
+    ) {
+        self.categoryID = categoryID
+        self.categoryName = categoryName
+        self.colorHex = colorHex
+        self.totalSpent = totalSpent
+        self.expenseCount = expenseCount
+    }
+}
+
 public struct ExpenseBookSnapshot: Equatable, Sendable {
     public let settings: ExpenseBookSettings
     public let categories: [ExpenseCategory]
@@ -69,6 +93,7 @@ public struct ExpenseBookSnapshot: Equatable, Sendable {
     public let today: DailySummary
     public let recentDays: [DailySummary]
     public let monthSummary: MonthSummary
+    public let monthCategoryBreakdown: [CategorySpendingSummary]
 
     public init(
         settings: ExpenseBookSettings,
@@ -79,7 +104,8 @@ public struct ExpenseBookSnapshot: Equatable, Sendable {
         dailyLogs: [DailyLog],
         today: DailySummary,
         recentDays: [DailySummary],
-        monthSummary: MonthSummary
+        monthSummary: MonthSummary,
+        monthCategoryBreakdown: [CategorySpendingSummary]
     ) {
         self.settings = settings
         self.categories = categories
@@ -90,5 +116,6 @@ public struct ExpenseBookSnapshot: Equatable, Sendable {
         self.today = today
         self.recentDays = recentDays
         self.monthSummary = monthSummary
+        self.monthCategoryBreakdown = monthCategoryBreakdown
     }
 }

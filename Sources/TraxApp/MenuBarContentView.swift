@@ -6,11 +6,39 @@ import TraxDomain
 struct MenuBarContentView: View {
     @EnvironmentObject private var store: ExpenseStore
     @State private var selectedSection = Section.today
+    @State private var isShowingSpendingBreakdown = false
 
     var body: some View {
+        Group {
+            if isShowingSpendingBreakdown, let snapshot = store.snapshot {
+                SpendingBreakdownView(snapshot: snapshot) {
+                    isShowingSpendingBreakdown = false
+                }
+            } else {
+                mainPanel
+            }
+        }
+        .frame(width: 420)
+        .alert(
+            "Trax",
+            isPresented: Binding(
+                get: { store.errorMessage != nil },
+                set: { if $0 == false { store.errorMessage = nil } }
+            ),
+            actions: {
+                Button("OK") {
+                    store.errorMessage = nil
+                }
+            },
+            message: {
+                Text(store.errorMessage ?? "")
+            }
+        )
+    }
+
+    private var mainPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
-
             Picker("Section", selection: $selectedSection) {
                 ForEach(Section.allCases) { section in
                     Text(section.title).tag(section)
@@ -31,22 +59,6 @@ struct MenuBarContentView: View {
             footer
         }
         .padding(14)
-        .frame(width: 420)
-        .alert(
-            "Trax",
-            isPresented: Binding(
-                get: { store.errorMessage != nil },
-                set: { if $0 == false { store.errorMessage = nil } }
-            ),
-            actions: {
-                Button("OK") {
-                    store.errorMessage = nil
-                }
-            },
-            message: {
-                Text(store.errorMessage ?? "")
-            }
-        )
     }
 
     @ViewBuilder
@@ -54,7 +66,9 @@ struct MenuBarContentView: View {
         if let snapshot = store.snapshot {
             switch selectedSection {
             case .today:
-                TodayView(snapshot: snapshot)
+                TodayView(snapshot: snapshot) {
+                    isShowingSpendingBreakdown = true
+                }
             case .expenses:
                 ExpenseEntryView(snapshot: snapshot)
             case .categories:

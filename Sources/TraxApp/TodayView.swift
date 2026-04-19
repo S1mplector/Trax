@@ -4,6 +4,7 @@ import TraxApplication
 struct TodayView: View {
     @EnvironmentObject private var store: ExpenseStore
     let snapshot: ExpenseBookSnapshot
+    let showSpendingBreakdown: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -53,7 +54,11 @@ struct TodayView: View {
                 ],
                 spacing: 8
             ) {
-                MetricView(title: "Spent", value: AppFormatters.currency(snapshot.monthSummary.totalSpent, currencyCode: snapshot.settings.currencyCode))
+                MetricView(
+                    title: "Spent",
+                    value: AppFormatters.currency(snapshot.monthSummary.totalSpent, currencyCode: snapshot.settings.currencyCode),
+                    action: showSpendingBreakdown
+                )
                 MetricView(title: "Spent days", value: "\(snapshot.monthSummary.spentDays)")
                 MetricView(title: "No-spend days", value: "\(snapshot.monthSummary.noSpendDays)")
                 MetricView(title: "Streak", value: "\(snapshot.monthSummary.currentNoSpendStreak)")
@@ -102,13 +107,30 @@ struct TodayView: View {
 private struct MetricView: View {
     let title: String
     let value: String
+    var action: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(value)
-                .font(.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 6) {
+                Text(value)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 4)
+
+                if let action {
+                    Button(action: action) {
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 11, weight: .semibold))
+                            .frame(width: 20, height: 18)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Show spending breakdown")
+                }
+            }
+
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)

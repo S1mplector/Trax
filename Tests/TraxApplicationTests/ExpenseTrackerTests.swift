@@ -43,6 +43,42 @@ final class ExpenseTrackerTests: XCTestCase {
 
         XCTAssertEqual(snapshot.settings.currencyCode, "USD")
     }
+
+    func testSnapshotIncludesMonthCategoryBreakdown() async throws {
+        let repository = InMemoryExpenseBookRepository()
+        let tracker = ExpenseTracker(repository: repository)
+        let groceries = try await tracker.addCategory(name: "Groceries", colorHex: "#34C759")
+        let transport = try await tracker.addCategory(name: "Transport", colorHex: "#0A84FF")
+
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 4, day: 5),
+            amount: Decimal(12),
+            categoryID: groceries.id
+        )
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 4, day: 6),
+            amount: Decimal(8),
+            categoryID: groceries.id
+        )
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 4, day: 7),
+            amount: Decimal(5),
+            categoryID: transport.id
+        )
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 3, day: 31),
+            amount: Decimal(99),
+            categoryID: transport.id
+        )
+
+        let snapshot = try await tracker.snapshot(today: Day(year: 2026, month: 4, day: 17))
+
+        XCTAssertEqual(snapshot.monthCategoryBreakdown.map(\.categoryName), ["Groceries", "Transport"])
+        XCTAssertEqual(snapshot.monthCategoryBreakdown[0].totalSpent, Decimal(20))
+        XCTAssertEqual(snapshot.monthCategoryBreakdown[0].expenseCount, 2)
+        XCTAssertEqual(snapshot.monthCategoryBreakdown[1].totalSpent, Decimal(5))
+        XCTAssertEqual(snapshot.monthCategoryBreakdown[1].expenseCount, 1)
+    }
 }
 
 private actor InMemoryExpenseBookRepository: ExpenseBookRepository {

@@ -8,6 +8,10 @@
 	<string>Trax</string>
 	<key>CFBundleIdentifier</key>
 	<string>app.trax.menubar</string>
+	<key>CFBundleIconFile</key>
+	<string>Trax</string>
+	<key>CFBundleIconName</key>
+	<string>Trax</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

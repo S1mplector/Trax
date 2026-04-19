@@ -2,13 +2,14 @@
 
 Trax is a minimal macOS menu bar app for daily expense tracking and no-buy check-ins.
 
-## What It Doese
+## What It Does
 
 - Log expenses with a day, amount, category, and optional note.
 - Mark a day as no-spend when nothing was bought.
 - See month-to-date spending, spent days, no-spend days, and the current no-spend streak.
 - Create, rename, archive, restore, and remove categories.
 - Set the currency used for displayed amounts.
+- Optionally launch Trax at login from Settings.
 
 ## Architecture
 
@@ -37,6 +38,7 @@ open build/Trax.app
 ```
 
 The generated app bundle uses `LSUIElement`, so it behaves as a menu bar app without a Dock icon.
+The packaging script also adds the app icon and ad-hoc signs the bundle for local use.
 
 ## Build a DMG
 

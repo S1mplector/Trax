@@ -158,7 +158,8 @@ public actor ExpenseTracker {
             dailyLogs: book.dailyLogs,
             today: makeDailySummary(for: today, in: book),
             recentDays: recentDays,
-            monthSummary: makeMonthSummary(today: today, book: book, calendar: calendar)
+            monthSummary: makeMonthSummary(today: today, book: book, calendar: calendar),
+            monthCategoryBreakdown: makeMonthCategoryBreakdown(today: today, book: book)
         )
     }
 
@@ -231,6 +232,37 @@ public actor ExpenseTracker {
 
             streak += 1
             cursor = cursor.addingDays(-1, calendar: calendar)
+        }
+    }
+
+    private func makeMonthCategoryBreakdown(today: Day, book: ExpenseBook) -> [CategorySpendingSummary] {
+        let monthExpenses = book.expenses.filter { expense in
+            expense.day.year == today.year && expense.day.month == today.month && expense.day <= today
+        }
+
+        let groupedExpenses = Dictionary(grouping: monthExpenses, by: \.categoryID)
+
+        return groupedExpenses.compactMap { categoryID, expenses in
+            guard let category = book.category(id: categoryID) else {
+                return nil
+            }
+
+            let totalSpent = expenses.reduce(Decimal.zero) { $0 + $1.amount }
+
+            return CategorySpendingSummary(
+                categoryID: categoryID,
+                categoryName: category.name,
+                colorHex: category.colorHex,
+                totalSpent: totalSpent,
+                expenseCount: expenses.count
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.totalSpent != rhs.totalSpent {
+                return lhs.totalSpent > rhs.totalSpent
+            }
+
+            return lhs.categoryName.localizedCaseInsensitiveCompare(rhs.categoryName) == .orderedAscending
         }
     }
 }
