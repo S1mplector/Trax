@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 
 extension Color {
     init(hex: String) {
@@ -22,5 +25,21 @@ extension Color {
         }
 
         self.init(red: red, green: green, blue: blue)
+    }
+
+    var hexString: String? {
+        #if canImport(AppKit)
+        let nsColor = NSColor(self)
+        guard let deviceColor = nsColor.usingColorSpace(.deviceRGB) else {
+            return nil
+        }
+
+        let red = Int((deviceColor.redComponent * 255).rounded())
+        let green = Int((deviceColor.greenComponent * 255).rounded())
+        let blue = Int((deviceColor.blueComponent * 255).rounded())
+        return String(format: "#%02X%02X%02X", red, green, blue)
+        #else
+        return nil
+        #endif
     }
 }

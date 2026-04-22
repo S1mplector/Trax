@@ -7,9 +7,10 @@ struct CategoriesView: View {
     let snapshot: ExpenseBookSnapshot
 
     @State private var newName = ""
-    @State private var selectedColor = ColorPreset.recommended(isEssential: false)
+    @State private var selectedColorHex = ColorPreset.recommended(isEssential: false).hex
     @State private var newCategoryIsEssential = false
     @State private var editingCategoryID: ExpenseCategory.ID?
+    @State private var colorEditingCategoryID: ExpenseCategory.ID?
     @State private var editedName = ""
     @State private var categoryPendingRemoval: ExpenseCategory?
 
@@ -31,17 +32,13 @@ struct CategoriesView: View {
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(submitCategory)
 
-                HStack {
-                    ColorPresetPicker(selection: $selectedColor)
-
-                    Spacer()
-                }
+                CategoryColorPicker(selectionHex: $selectedColorHex)
 
                 HStack {
                     Toggle("Essential", isOn: $newCategoryIsEssential)
                         .toggleStyle(.checkbox)
                         .onChange(of: newCategoryIsEssential) { _, isEssential in
-                            selectedColor = ColorPreset.recommended(isEssential: isEssential)
+                            selectedColorHex = ColorPreset.recommended(isEssential: isEssential).hex
                         }
 
                     PrimaryInlineButton(
@@ -68,9 +65,9 @@ struct CategoriesView: View {
                         CategoryRow(
                             category: category,
                             isEditing: editingCategoryID == category.id,
+                            isColorEditing: colorEditingCategoryID == category.id,
                             isPendingRemoval: categoryPendingRemoval?.id == category.id,
                             editedName: binding(for: category),
-                            selectedPreset: ColorPreset.matching(category.colorHex),
                             edit: {
                                 beginEditing(category)
                             },
@@ -87,8 +84,21 @@ struct CategoriesView: View {
                                 editingCategoryID = nil
                                 editedName = ""
                             },
-                            updateColor: { preset in
-                                Task { await store.updateCategoryColor(id: category.id, colorHex: preset.hex) }
+                            toggleColorEditor: {
+                                categoryPendingRemoval = nil
+                                if colorEditingCategoryID == category.id {
+                                    colorEditingCategoryID = nil
+                                } else {
+                                    editingCategoryID = nil
+                                    editedName = ""
+                                    colorEditingCategoryID = category.id
+                                }
+                            },
+                            closeColorEditor: {
+                                colorEditingCategoryID = nil
+                            },
+                            updateColor: { colorHex in
+                                Task { await store.updateCategoryColor(id: category.id, colorHex: colorHex) }
                             },
                             toggleEssential: {
                                 Task {
@@ -110,6 +120,7 @@ struct CategoriesView: View {
                             },
                             requestRemove: {
                                 editingCategoryID = nil
+                                colorEditingCategoryID = nil
                                 editedName = ""
                                 categoryPendingRemoval = category
                             },
@@ -147,6 +158,7 @@ struct CategoriesView: View {
 
     private func beginEditing(_ category: ExpenseCategory) {
         categoryPendingRemoval = nil
+        colorEditingCategoryID = nil
         editingCategoryID = category.id
         editedName = category.name
     }
@@ -157,11 +169,11 @@ struct CategoriesView: View {
 
     private func submitCategory() {
         Task {
-            await store.addCategory(name: newName, colorHex: selectedColor.hex, isEssential: newCategoryIsEssential)
+            await store.addCategory(name: newName, colorHex: selectedColorHex, isEssential: newCategoryIsEssential)
             if store.errorMessage == nil {
                 newName = ""
                 newCategoryIsEssential = false
-                selectedColor = ColorPreset.recommended(isEssential: false)
+                selectedColorHex = ColorPreset.recommended(isEssential: false).hex
             }
         }
     }
@@ -170,13 +182,15 @@ struct CategoriesView: View {
 private struct CategoryRow: View {
     let category: ExpenseCategory
     let isEditing: Bool
+    let isColorEditing: Bool
     let isPendingRemoval: Bool
     @Binding var editedName: String
-    let selectedPreset: ColorPreset
     let edit: () -> Void
     let save: () -> Void
     let cancel: () -> Void
-    let updateColor: (ColorPreset) -> Void
+    let toggleColorEditor: () -> Void
+    let closeColorEditor: () -> Void
+    let updateColor: (String) -> Void
     let toggleEssential: () -> Void
     let archiveOrRestore: () -> Void
     let requestRemove: () -> Void
@@ -190,16 +204,9 @@ private struct CategoryRow: View {
             if isPendingRemoval {
                 removeConfirmation
             } else if isEditing {
-                HStack {
-                    ColorPresetButtons(selectedPreset: selectedPreset, select: updateColor)
-
-                    Spacer()
-
-                    Button("Save", action: save)
-                        .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    Button("Cancel", action: cancel)
-                }
-                .padding(.leading, 20)
+                renameEditor
+            } else if isColorEditing {
+                colorEditor
             }
         }
         .font(.callout)
@@ -230,8 +237,13 @@ private struct CategoryRow: View {
 
             Spacer(minLength: 12)
 
-            if isEditing == false && isPendingRemoval == false {
+            if isPendingRemoval == false {
                 CategoryIconButton(systemName: "pencil", help: "Rename", action: edit)
+                CategoryIconButton(
+                    systemName: isColorEditing ? "paintpalette.fill" : "paintpalette",
+                    help: isColorEditing ? "Hide color controls" : "Change color",
+                    action: toggleColorEditor
+                )
                 CategoryIconButton(
                     systemName: category.isArchived ? "arrow.uturn.backward" : "archivebox",
                     help: category.isArchived ? "Restore" : "Archive",
@@ -245,6 +257,33 @@ private struct CategoryRow: View {
                 CategoryIconButton(systemName: "trash", help: "Remove", role: .destructive, action: requestRemove)
             }
         }
+    }
+
+    private var renameEditor: some View {
+        HStack {
+            Spacer()
+            Button("Save", action: save)
+                .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Button("Cancel", action: cancel)
+        }
+        .padding(.leading, 20)
+    }
+
+    private var colorEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            CategoryColorPicker(
+                selectionHex: Binding(
+                    get: { category.colorHex },
+                    set: { updateColor($0) }
+                )
+            )
+
+            HStack {
+                Spacer()
+                Button("Done", action: closeColorEditor)
+            }
+        }
+        .padding(.leading, 20)
     }
 
     private var removeConfirmation: some View {
@@ -309,18 +348,46 @@ private struct CategoryIconButton: View {
     }
 }
 
-private struct ColorPresetPicker: View {
-    @Binding var selection: ColorPreset
+private struct CategoryColorPicker: View {
+    @Binding var selectionHex: String
 
     var body: some View {
-        ColorPresetButtons(selectedPreset: selection) { preset in
-            selection = preset
+        VStack(alignment: .leading, spacing: 8) {
+            ColorPresetButtons(selectedHex: selectionHex) { preset in
+                selectionHex = preset.hex
+            }
+
+            HStack(spacing: 10) {
+                ColorPicker(
+                    "Custom",
+                    selection: Binding(
+                        get: { Color(hex: selectionHex) },
+                        set: { color in
+                            if let hexString = color.hexString {
+                                selectionHex = hexString
+                            }
+                        }
+                    ),
+                    supportsOpacity: false
+                )
+                .labelsHidden()
+
+                Text("Custom")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text(selectionHex)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
         }
     }
 }
 
 private struct ColorPresetButtons: View {
-    let selectedPreset: ColorPreset
+    let selectedHex: String
     let select: (ColorPreset) -> Void
 
     var body: some View {
@@ -333,7 +400,7 @@ private struct ColorPresetButtons: View {
                         .fill(Color(hex: preset.hex))
                         .frame(width: 18, height: 18)
                         .overlay {
-                            if selectedPreset.id == preset.id {
+                            if preset.hex.caseInsensitiveCompare(selectedHex) == .orderedSame {
                                 Circle()
                                     .stroke(.primary, lineWidth: 2)
                             }
@@ -361,10 +428,6 @@ private struct ColorPreset: Identifiable, Equatable {
         ColorPreset(id: "red", name: "Red", hex: "#FF453A"),
         ColorPreset(id: "gray", name: "Gray", hex: "#8E8E93")
     ]
-
-    static func matching(_ hex: String) -> ColorPreset {
-        presets.first { $0.hex.caseInsensitiveCompare(hex) == .orderedSame } ?? presets.last!
-    }
 
     static func recommended(isEssential: Bool) -> ColorPreset {
         if isEssential {
