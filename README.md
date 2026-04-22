@@ -1,6 +1,6 @@
 # Trax
 
-Trax is a minimal macOS menu bar app for daily expense tracking and no-buy check-ins.
+Trax is a minimal macOS menu bar app for daily expense tracking.
 
 ## What It Does
 
@@ -15,7 +15,7 @@ Trax is a minimal macOS menu bar app for daily expense tracking and no-buy check
 
 ## Architecture
 
-The code is split as a small hexagonal app:
+The code is split as a small hexagonal application:
 
 - `TraxDomain`: entities, value objects, and business rules.
 - `TraxApplication`: use cases, snapshots, and repository ports.
