@@ -3,10 +3,16 @@ import TraxApplication
 
 struct StatusPill: View {
     let status: DayStatus
+    let spentColor: Color
+
+    init(status: DayStatus, spentColor: Color = .red) {
+        self.status = status
+        self.spentColor = spentColor
+    }
 
     var body: some View {
         HStack(spacing: 6) {
-            StatusDot(status: status)
+            StatusDot(status: status, spentColor: spentColor)
             Text(title)
                 .font(.caption.weight(.medium))
         }
@@ -30,7 +36,7 @@ struct StatusPill: View {
     private var color: Color {
         switch status {
         case .spent:
-            return .red
+            return spentColor
         case .noSpend:
             return .green
         case .unlogged:
@@ -41,6 +47,12 @@ struct StatusPill: View {
 
 struct StatusDot: View {
     let status: DayStatus
+    let spentColor: Color
+
+    init(status: DayStatus, spentColor: Color = .red) {
+        self.status = status
+        self.spentColor = spentColor
+    }
 
     var body: some View {
         Circle()
@@ -51,7 +63,7 @@ struct StatusDot: View {
     private var color: Color {
         switch status {
         case .spent:
-            return .red
+            return spentColor
         case .noSpend:
             return .green
         case .unlogged:

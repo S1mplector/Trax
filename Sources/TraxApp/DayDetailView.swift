@@ -44,7 +44,10 @@ struct DayDetailView: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                StatusPill(status: status)
+                StatusPill(
+                    status: status,
+                    spentColor: SpendKindColors.spentColor(for: expenses, categories: snapshot.categories)
+                )
                 Spacer()
                 Text(AppFormatters.currency(totalSpent, currencyCode: snapshot.settings.currencyCode))
                     .font(.title3.weight(.semibold))

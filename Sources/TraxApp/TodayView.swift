@@ -20,7 +20,10 @@ struct TodayView: View {
     private var todayStatus: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                StatusPill(status: snapshot.today.status)
+                StatusPill(
+                    status: snapshot.today.status,
+                    spentColor: SpendKindColors.spentColor(for: todayExpenses, categories: snapshot.categories)
+                )
                 Spacer()
                 Text(AppFormatters.currency(snapshot.today.totalSpent, currencyCode: snapshot.settings.currencyCode))
                     .font(.title3.weight(.semibold))
@@ -96,7 +99,8 @@ struct TodayView: View {
 
                 HStack(spacing: 10) {
                     HeatmapLegendItem(color: .green, label: "No-spend")
-                    HeatmapLegendItem(color: .red, label: "Spent")
+                    HeatmapLegendItem(color: .orange, label: "Essential")
+                    HeatmapLegendItem(color: .red, label: "Non-essential")
                     HeatmapLegendItem(color: Color.primary.opacity(0.16), label: "Unlogged")
                 }
             }
@@ -119,6 +123,10 @@ struct TodayView: View {
         let symbols = formatter.shortStandaloneWeekdaySymbols ?? []
         let firstWeekday = Calendar.current.firstWeekday - 1
         return Array(symbols[firstWeekday...] + symbols[..<firstWeekday]).map { String($0.prefix(2)) }
+    }
+
+    private var todayExpenses: [Expense] {
+        snapshot.expenses.filter { $0.day == snapshot.today.day }
     }
 
     private var heatmapEntries: [HeatmapEntry] {
@@ -153,7 +161,8 @@ struct TodayView: View {
             day: day,
             totalSpent: totalSpent,
             expenseCount: expenses.count,
-            status: status
+            status: status,
+            spentColor: SpendKindColors.spentColor(for: expenses, categories: snapshot.categories)
         )
     }
 }
@@ -208,6 +217,7 @@ private struct HeatmapDaySummary {
     let totalSpent: Decimal
     let expenseCount: Int
     let status: DayStatus
+    let spentColor: Color
 }
 
 private enum HeatmapLayout {
@@ -252,7 +262,7 @@ private struct HeatmapDayButton: View {
     private var backgroundColor: Color {
         switch summary.status {
         case .spent:
-            return .red.opacity(0.74)
+            return summary.spentColor.opacity(0.74)
         case .noSpend:
             return .green.opacity(0.68)
         case .unlogged:
