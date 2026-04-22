@@ -86,6 +86,18 @@ public actor ExpenseTracker {
         try await persist(book)
     }
 
+    public func updateExpense(
+        id: Expense.ID,
+        day: Day,
+        amount: Decimal,
+        categoryID: ExpenseCategory.ID,
+        note: String = ""
+    ) async throws {
+        var book = try await currentBook()
+        try book.updateExpense(id: id, day: day, amount: amount, categoryID: categoryID, note: note)
+        try await persist(book)
+    }
+
     public func markNoSpend(day: Day, note: String = "") async throws {
         var book = try await currentBook()
         try book.markNoSpend(day: day, note: note)
@@ -108,6 +120,15 @@ public actor ExpenseTracker {
         var book = try await currentBook()
         book.updateSpendingBreakdownMode(mode)
         try await persist(book)
+    }
+
+    public func exportBook() async throws -> ExpenseBook {
+        try await currentBook()
+    }
+
+    public func importBook(_ book: ExpenseBook) async throws {
+        let normalizedBook = book.categories.isEmpty ? seedDefaultCategories(into: book) : book
+        try await persist(normalizedBook)
     }
 
     private func currentBook() async throws -> ExpenseBook {
@@ -205,11 +226,28 @@ public actor ExpenseTracker {
         let spentDays = summaries.filter { $0.status == .spent }.count
         let noSpendDays = summaries.filter { $0.status == .noSpend }.count
         let unloggedDays = summaries.filter { $0.status == .unlogged }.count
+        let monthExpenses = book.expenses.filter { expense in
+            expense.day.year == today.year && expense.day.month == today.month && expense.day <= today
+        }
+        let essentialSpent = monthExpenses.reduce(Decimal.zero) { result, expense in
+            guard book.category(id: expense.categoryID)?.isEssential == true else {
+                return result
+            }
+            return result + expense.amount
+        }
+        let nonEssentialSpent = monthExpenses.reduce(Decimal.zero) { result, expense in
+            guard book.category(id: expense.categoryID)?.isEssential == false else {
+                return result
+            }
+            return result + expense.amount
+        }
 
         return MonthSummary(
             year: today.year,
             month: today.month,
             totalSpent: totalSpent,
+            essentialSpent: essentialSpent,
+            nonEssentialSpent: nonEssentialSpent,
             spentDays: spentDays,
             noSpendDays: noSpendDays,
             unloggedDays: unloggedDays,

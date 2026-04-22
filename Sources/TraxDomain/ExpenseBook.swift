@@ -115,17 +115,7 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
 
     @discardableResult
     public mutating func addExpense(day: Day, amount: Decimal, categoryID: ExpenseCategory.ID, note: String = "") throws -> Expense {
-        guard amount > 0 else {
-            throw ExpenseBookError.amountMustBePositive
-        }
-
-        guard let category = categories.first(where: { $0.id == categoryID }) else {
-            throw ExpenseBookError.categoryNotFound
-        }
-
-        guard category.isArchived == false else {
-            throw ExpenseBookError.archivedCategory
-        }
+        try validateExpense(amount: amount, categoryID: categoryID)
 
         let expense = Expense(
             day: day,
@@ -135,8 +125,31 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
         )
         expenses.append(expense)
         dailyLogs.removeAll { $0.day == day && $0.spentNothing }
+        settings.lastUsedCategoryID = categoryID
         sortExpenses()
         return expense
+    }
+
+    public mutating func updateExpense(
+        id: Expense.ID,
+        day: Day,
+        amount: Decimal,
+        categoryID: ExpenseCategory.ID,
+        note: String = ""
+    ) throws {
+        try validateExpense(amount: amount, categoryID: categoryID)
+
+        guard let index = expenses.firstIndex(where: { $0.id == id }) else {
+            throw ExpenseBookError.expenseNotFound
+        }
+
+        expenses[index].day = day
+        expenses[index].amount = amount
+        expenses[index].categoryID = categoryID
+        expenses[index].note = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        dailyLogs.removeAll { $0.day == day && $0.spentNothing }
+        settings.lastUsedCategoryID = categoryID
+        sortExpenses()
     }
 
     public mutating func deleteExpense(id: Expense.ID) throws {
@@ -186,6 +199,20 @@ public struct ExpenseBook: Codable, Equatable, Sendable {
 
     public func category(id: ExpenseCategory.ID) -> ExpenseCategory? {
         categories.first { $0.id == id }
+    }
+
+    private func validateExpense(amount: Decimal, categoryID: ExpenseCategory.ID) throws {
+        guard amount > 0 else {
+            throw ExpenseBookError.amountMustBePositive
+        }
+
+        guard let category = categories.first(where: { $0.id == categoryID }) else {
+            throw ExpenseBookError.categoryNotFound
+        }
+
+        guard category.isArchived == false else {
+            throw ExpenseBookError.archivedCategory
+        }
     }
 
     private func normalizedCategoryName(_ name: String) throws -> String {

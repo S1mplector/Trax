@@ -1,6 +1,8 @@
+import AppKit
 import Foundation
 import TraxApplication
 import TraxDomain
+import TraxFilePersistence
 
 @MainActor
 final class ExpenseStore: ObservableObject {
@@ -9,13 +11,16 @@ final class ExpenseStore: ObservableObject {
     @Published var errorMessage: String?
 
     private let tracker: ExpenseTracker
+    private let fileRepository: FileExpenseBookRepository?
     private let calendar: Calendar
 
     init(
         tracker: ExpenseTracker,
+        fileRepository: FileExpenseBookRepository? = nil,
         calendar: Calendar = .current
     ) {
         self.tracker = tracker
+        self.fileRepository = fileRepository
         self.calendar = calendar
     }
 
@@ -70,6 +75,34 @@ final class ExpenseStore: ObservableObject {
         }
     }
 
+    func updateExpense(
+        id: Expense.ID,
+        date: Date,
+        amountText: String,
+        categoryID: ExpenseCategory.ID?,
+        note: String
+    ) async {
+        guard let amount = AmountParser.decimal(from: amountText), amount > 0 else {
+            errorMessage = ExpenseBookError.amountMustBePositive.localizedDescription
+            return
+        }
+
+        guard let categoryID else {
+            errorMessage = "Pick a category before saving an expense."
+            return
+        }
+
+        await perform {
+            try await tracker.updateExpense(
+                id: id,
+                day: Day(date: date, calendar: calendar),
+                amount: amount,
+                categoryID: categoryID,
+                note: note
+            )
+        }
+    }
+
     func addCategory(name: String, colorHex: String, isEssential: Bool = false) async {
         await perform {
             try await tracker.addCategory(name: name, colorHex: colorHex, isEssential: isEssential)
@@ -121,6 +154,66 @@ final class ExpenseStore: ObservableObject {
     func updateSpendingBreakdownMode(_ mode: SpendingBreakdownMode) async {
         await perform {
             try await tracker.updateSpendingBreakdownMode(mode)
+        }
+    }
+
+    func exportJSON(to destinationURL: URL) async {
+        guard let fileRepository else {
+            errorMessage = "Export is unavailable for this build."
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let book = try await tracker.exportBook()
+            try await fileRepository.exportJSON(book, to: destinationURL)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func exportCSV(to destinationURL: URL) async {
+        guard let fileRepository else {
+            errorMessage = "Export is unavailable for this build."
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let book = try await tracker.exportBook()
+            try await fileRepository.exportCSV(book, currencyCode: snapshot?.settings.currencyCode ?? ExpenseBookSettings.defaultCurrencyCode, to: destinationURL)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func importJSON(from sourceURL: URL) async {
+        guard let fileRepository else {
+            errorMessage = "Import is unavailable for this build."
+            return
+        }
+
+        await perform {
+            let importedBook = try await fileRepository.importBook(from: sourceURL)
+            try await tracker.importBook(importedBook)
+        }
+    }
+
+    func openDataFolder() {
+        guard let fileRepository else {
+            errorMessage = "The data folder is unavailable for this build."
+            return
+        }
+
+        Task { @MainActor in
+            let url = await fileRepository.storageDirectoryURL
+            NSWorkspace.shared.open(url)
         }
     }
 

@@ -19,7 +19,7 @@ struct TraxApp: App {
         }
 
         let tracker = ExpenseTracker(repository: repository)
-        _store = StateObject(wrappedValue: ExpenseStore(tracker: tracker))
+        _store = StateObject(wrappedValue: ExpenseStore(tracker: tracker, fileRepository: repository))
     }
 
     var body: some Scene {

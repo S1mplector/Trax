@@ -1,5 +1,7 @@
+import AppKit
 import SwiftUI
 import TraxApplication
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var store: ExpenseStore
@@ -23,6 +25,24 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
+
+            PanelSection("Data", detail: "Export full JSON, export expenses as CSV, import a backup, or open the live data folder.") {
+                HStack(spacing: 8) {
+                    Button("Export JSON", action: exportJSON)
+                    Button("Export CSV", action: exportCSV)
+                }
+
+                HStack(spacing: 8) {
+                    Button("Import JSON", action: importJSON)
+                    Button("Open Data Folder") {
+                        store.openDataFolder()
+                    }
+                }
+
+                Text("Each save also keeps a rolling backup at `expense-book.json.bak` beside the live file.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             PanelSection("Launch") {
@@ -56,6 +76,49 @@ struct SettingsView: View {
         } catch {
             launchAtLoginStatus = LaunchAtLoginController.status()
             store.errorMessage = error.localizedDescription
+        }
+    }
+
+    private func exportJSON() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "trax-export.json"
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        Task {
+            await store.exportJSON(to: url)
+        }
+    }
+
+    private func exportCSV() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.nameFieldStringValue = "trax-expenses.csv"
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        Task {
+            await store.exportCSV(to: url)
+        }
+    }
+
+    private func importJSON() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        Task {
+            await store.importJSON(from: url)
         }
     }
 }

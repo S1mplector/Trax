@@ -7,7 +7,7 @@ struct CategoriesView: View {
     let snapshot: ExpenseBookSnapshot
 
     @State private var newName = ""
-    @State private var selectedColor = ColorPreset.presets.first!
+    @State private var selectedColor = ColorPreset.recommended(isEssential: false)
     @State private var newCategoryIsEssential = false
     @State private var editingCategoryID: ExpenseCategory.ID?
     @State private var editedName = ""
@@ -40,6 +40,9 @@ struct CategoriesView: View {
                 HStack {
                     Toggle("Essential", isOn: $newCategoryIsEssential)
                         .toggleStyle(.checkbox)
+                        .onChange(of: newCategoryIsEssential) { _, isEssential in
+                            selectedColor = ColorPreset.recommended(isEssential: isEssential)
+                        }
 
                     PrimaryInlineButton(
                         title: "Add",
@@ -158,6 +161,7 @@ struct CategoriesView: View {
             if store.errorMessage == nil {
                 newName = ""
                 newCategoryIsEssential = false
+                selectedColor = ColorPreset.recommended(isEssential: false)
             }
         }
     }
@@ -349,6 +353,7 @@ private struct ColorPreset: Identifiable, Equatable {
     let hex: String
 
     static let presets = [
+        ColorPreset(id: "orange", name: "Orange", hex: "#FF9F0A"),
         ColorPreset(id: "green", name: "Green", hex: "#34C759"),
         ColorPreset(id: "blue", name: "Blue", hex: "#0A84FF"),
         ColorPreset(id: "yellow", name: "Yellow", hex: "#FFD60A"),
@@ -358,6 +363,14 @@ private struct ColorPreset: Identifiable, Equatable {
     ]
 
     static func matching(_ hex: String) -> ColorPreset {
-        presets.first { $0.hex.caseInsensitiveCompare(hex) == .orderedSame } ?? presets[5]
+        presets.first { $0.hex.caseInsensitiveCompare(hex) == .orderedSame } ?? presets.last!
+    }
+
+    static func recommended(isEssential: Bool) -> ColorPreset {
+        if isEssential {
+            return presets.first { $0.id == "orange" } ?? presets[0]
+        }
+
+        return presets.first { $0.id == "red" } ?? presets[0]
     }
 }

@@ -93,6 +93,29 @@ final class ExpenseTrackerTests: XCTestCase {
         XCTAssertEqual(snapshot.monthCategoryBreakdown[1].totalSpent, Decimal(5))
         XCTAssertEqual(snapshot.monthCategoryBreakdown[1].expenseCount, 1)
     }
+
+    func testSnapshotIncludesEssentialAndNonEssentialMonthTotals() async throws {
+        let repository = InMemoryExpenseBookRepository()
+        let tracker = ExpenseTracker(repository: repository)
+        let groceries = try await tracker.addCategory(name: "Groceries", colorHex: "#34C759", isEssential: true)
+        let wants = try await tracker.addCategory(name: "Wants", colorHex: "#FF453A", isEssential: false)
+
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 4, day: 5),
+            amount: Decimal(20),
+            categoryID: groceries.id
+        )
+        try await tracker.addExpense(
+            day: Day(year: 2026, month: 4, day: 8),
+            amount: Decimal(7),
+            categoryID: wants.id
+        )
+
+        let snapshot = try await tracker.snapshot(today: Day(year: 2026, month: 4, day: 17))
+
+        XCTAssertEqual(snapshot.monthSummary.essentialSpent, Decimal(20))
+        XCTAssertEqual(snapshot.monthSummary.nonEssentialSpent, Decimal(7))
+    }
 }
 
 private actor InMemoryExpenseBookRepository: ExpenseBookRepository {

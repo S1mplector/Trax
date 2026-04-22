@@ -12,9 +12,16 @@ struct MenuBarContentView: View {
     var body: some View {
         Group {
             if let selectedDayDetail, let snapshot = store.snapshot {
-                DayDetailView(snapshot: snapshot, day: selectedDayDetail) {
-                    self.selectedDayDetail = nil
-                }
+                DayDetailView(
+                    snapshot: snapshot,
+                    day: selectedDayDetail,
+                    showDay: { day in
+                        self.selectedDayDetail = day
+                    },
+                    close: {
+                        self.selectedDayDetail = nil
+                    }
+                )
             } else if isShowingSpendingBreakdown, let snapshot = store.snapshot {
                 SpendingBreakdownView(snapshot: snapshot) {
                     isShowingSpendingBreakdown = false

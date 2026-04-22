@@ -35,6 +35,8 @@ public struct MonthSummary: Equatable, Sendable {
     public let year: Int
     public let month: Int
     public let totalSpent: Decimal
+    public let essentialSpent: Decimal
+    public let nonEssentialSpent: Decimal
     public let spentDays: Int
     public let noSpendDays: Int
     public let unloggedDays: Int
@@ -44,6 +46,8 @@ public struct MonthSummary: Equatable, Sendable {
         year: Int,
         month: Int,
         totalSpent: Decimal,
+        essentialSpent: Decimal,
+        nonEssentialSpent: Decimal,
         spentDays: Int,
         noSpendDays: Int,
         unloggedDays: Int,
@@ -52,6 +56,8 @@ public struct MonthSummary: Equatable, Sendable {
         self.year = year
         self.month = month
         self.totalSpent = totalSpent
+        self.essentialSpent = essentialSpent
+        self.nonEssentialSpent = nonEssentialSpent
         self.spentDays = spentDays
         self.noSpendDays = noSpendDays
         self.unloggedDays = unloggedDays

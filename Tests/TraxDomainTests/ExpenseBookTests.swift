@@ -25,6 +25,27 @@ final class ExpenseBookTests: XCTestCase {
         XCTAssertTrue(book.dailyLogs.isEmpty)
     }
 
+    func testUpdatingExpenseChangesValuesAndLastUsedCategory() throws {
+        var book = ExpenseBook()
+        let groceries = try book.addCategory(name: "Groceries", colorHex: "#34C759")
+        let transport = try book.addCategory(name: "Transport", colorHex: "#0A84FF")
+        let expense = try book.addExpense(day: Day(year: 2026, month: 4, day: 17), amount: Decimal(12), categoryID: groceries.id, note: "before")
+
+        try book.updateExpense(
+            id: expense.id,
+            day: Day(year: 2026, month: 4, day: 18),
+            amount: Decimal(18),
+            categoryID: transport.id,
+            note: "after"
+        )
+
+        XCTAssertEqual(book.expenses.first?.day, Day(year: 2026, month: 4, day: 18))
+        XCTAssertEqual(book.expenses.first?.amount, Decimal(18))
+        XCTAssertEqual(book.expenses.first?.categoryID, transport.id)
+        XCTAssertEqual(book.expenses.first?.note, "after")
+        XCTAssertEqual(book.settings.lastUsedCategoryID, transport.id)
+    }
+
     func testUsedCategoryIsArchivedInsteadOfRemoved() throws {
         var book = ExpenseBook()
         let category = try book.addCategory(name: "Wants", colorHex: "#FF453A")
@@ -86,6 +107,7 @@ final class ExpenseBookTests: XCTestCase {
 
         XCTAssertEqual(settings.currencyCode, "EUR")
         XCTAssertEqual(settings.spendingBreakdownMode, .list)
+        XCTAssertNil(settings.lastUsedCategoryID)
     }
 
     func testCategoryCanBeMarkedEssential() throws {

@@ -54,7 +54,7 @@ struct SpendingBreakdownView: View {
     }
 
     private var summary: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(AppFormatters.currency(snapshot.monthSummary.totalSpent, currencyCode: snapshot.settings.currencyCode))
                 .font(.largeTitle.weight(.semibold))
                 .lineLimit(1)
@@ -63,6 +63,21 @@ struct SpendingBreakdownView: View {
             Text("\(snapshot.monthSummary.spentDays) spent day\(snapshot.monthSummary.spentDays == 1 ? "" : "s") this month")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                SpendSplitCard(
+                    title: "Essential",
+                    amount: snapshot.monthSummary.essentialSpent,
+                    currencyCode: snapshot.settings.currencyCode,
+                    color: SpendKindColors.essential
+                )
+                SpendSplitCard(
+                    title: "Non-essential",
+                    amount: snapshot.monthSummary.nonEssentialSpent,
+                    currencyCode: snapshot.settings.currencyCode,
+                    color: SpendKindColors.nonEssential
+                )
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -218,6 +233,35 @@ private struct CategoryBreakdownRow: View {
 
         let categoryTotal = (category.totalSpent as NSDecimalNumber).doubleValue
         return min(max(categoryTotal / total, 0), 1)
+    }
+}
+
+private struct SpendSplitCard: View {
+    let title: String
+    let amount: Decimal
+    let currencyCode: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 8, height: 8)
+                Text(title)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(AppFormatters.currency(amount, currencyCode: currencyCode))
+                .font(.callout.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.primary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
