@@ -1,6 +1,6 @@
 # Trax
 
-Trax is a minimal macOS menu bar app for daily expense tracking.
+Trax is a minimal macOS menu bar app for daily expense tracking, originally made for my own use. 
 
 ## What It Does
 
